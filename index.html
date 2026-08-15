@@ -217,7 +217,7 @@
 
     th, td {
       border-bottom: 1px solid var(--border);
-      padding: 8px 10px; /* Reduced padding for horizontal breathing room */
+      padding: 8px 10px;
       vertical-align: middle;
     }
 
@@ -426,7 +426,7 @@
  <!-- TAB 1: DIRECTORY -->
   <div id="tab-directory" class="tab-content active">
     
-  <!-- Value-Added KPI Summary Header -->
+    <!-- Value-Added KPI Summary Header -->
     <div class="card" style="padding: 14px 18px; margin-bottom: 16px;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; text-align: center;">
         <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
@@ -547,10 +547,10 @@
             <label for="buyerName">Buyer *</label>
             <input type="text" id="buyerName" required placeholder="Enter buyer name">
           </div>
-		<div>
-			<label for="buyerFirstContactDate">Date of First Contact</label>
-			<input type="date" id="buyerFirstContactDate">
-		</div>
+          <div>
+            <label for="buyerFirstContactDate">Date of First Contact</label>
+            <input type="date" id="buyerFirstContactDate">
+          </div>
           <div>
             <label for="buyerPhone">Phone</label>
             <input type="tel" id="buyerPhone" placeholder="Enter phone number">
@@ -613,10 +613,10 @@
             <label for="newMemberPhone">Member Phone *</label>
             <input type="tel" id="newMemberPhone" placeholder="e.g. +91 9876543210" required>
           </div>
-			<div>
-			<label for="newMemberJoiningDate">Date of Joining</label>
-			<input type="date" id="newMemberJoiningDate">
-			</div>
+          <div>
+            <label for="newMemberJoiningDate">Date of Joining</label>
+            <input type="date" id="newMemberJoiningDate">
+          </div>
           <div>
             <label for="newMemberDesignation">Designation *</label>
             <select id="newMemberDesignation" required>
@@ -654,7 +654,7 @@
       </div>
     </div>
 
-  <!-- 3. Advanced Setup & Configuration (Collapsed by default) -->
+    <!-- 3. Advanced Setup & Configuration (Collapsed by default) -->
     <div class="card" style="margin-top: 30px; border-top: 3px solid var(--border);">
       <details>
         <summary style="cursor: pointer; font-weight: 700; color: var(--text-muted); font-size: 1rem; text-transform: uppercase;">
@@ -696,6 +696,8 @@
 
       </details>
     </div>
+
+  </div> <!-- ✅ CORRECTED: Properly closed tab-team container div here -->
 
   <!-- TAB 4: BULK IMPORT & SYNC -->
   <div id="tab-import" class="tab-content">
@@ -870,7 +872,7 @@
       const el = document.getElementById(`note-${idx}`);
       if (el) el.classList.toggle('active');
     }
-// Appends a timestamped note without wiping out previous history
+
     function appendQuickNote(actualIndex) {
       const input = document.getElementById(`quick-note-input-${actualIndex}`);
       const text = input ? input.value.trim() : '';
@@ -888,7 +890,6 @@
       renderTable();
     }
 
-    // Instantly updates lead status/flags from the table row dropdown
     function quickUpdateStatus(actualIndex, newStatus) {
       const buyer = buyers[actualIndex];
       if (!buyer) return;
@@ -1005,11 +1006,10 @@
           </td>
         </tr>
       `).join('');
-	  updateDesignationAvailability();
+      updateDesignationAvailability();
     }
-	
-	
-	function updateDesignationAvailability() {
+    
+    function updateDesignationAvailability() {
       const designationSelect = document.getElementById('newMemberDesignation');
       if (!designationSelect) return;
 
@@ -1029,43 +1029,39 @@
     }
 
     function saveTeamMember() {
-  const index = parseInt(document.getElementById('editTeamIndex').value, 10);
-  const name = document.getElementById('newMemberName').value.trim();
-  const phone = document.getElementById('newMemberPhone').value.trim();
-  const designation = document.getElementById('newMemberDesignation').value;
+      const index = parseInt(document.getElementById('editTeamIndex').value, 10);
+      const name = document.getElementById('newMemberName').value.trim();
+      const phone = document.getElementById('newMemberPhone').value.trim();
+      const designation = document.getElementById('newMemberDesignation').value;
 
-  if (!name || !phone || !designation) {
-    alert("Please fill in all required fields.");
-    return;
-  }
+      if (!name || !phone || !designation) {
+        alert("Please fill in all required fields.");
+        return;
+      }
 
-  // 1. Enforce allowed designations list
-  const allowedDesignations = ['VP', 'DVP', 'BDM', 'SM', 'CP'];
-  if (!allowedDesignations.includes(designation)) {
-    alert("Invalid designation selected.");
-    return;
-  }
+      const allowedDesignations = ['VP', 'DVP', 'BDM', 'SM', 'CP'];
+      if (!allowedDesignations.includes(designation)) {
+        alert("Invalid designation selected.");
+        return;
+      }
 
-  // 2. Enforce "Only 1 person each" rule for VP and DVP
-  if (designation === 'VP' || designation === 'DVP') {
-    // Check if another member already holds this role (ignoring the current record if we are editing it)
-    const existingHolder = teamMembers.find((m, idx) => m.designation === designation && idx !== index);
-    
-    if (existingHolder) {
-      alert(`Restriction Error: ${designation} role is already assigned to ${existingHolder.name}. Only one person is allowed for this designation.`);
-      return;
+      if (designation === 'VP' || designation === 'DVP') {
+        const existingHolder = teamMembers.find((m, idx) => m.designation === designation && idx !== index);
+        if (existingHolder) {
+          alert(`Restriction Error: ${designation} role is already assigned to ${existingHolder.name}. Only one person is allowed for this designation.`);
+          return;
+        }
+      }
+
+      if (index >= 0) {
+        teamMembers[index] = { name, phone, designation };
+      } else {
+        teamMembers.push({ name, phone, designation });
+      }
+
+      persistData();
+      resetTeamForm();
     }
-  }
-
-  if (index >= 0) {
-    teamMembers[index] = { name, phone, designation };
-  } else {
-    teamMembers.push({ name, phone, designation });
-  }
-
-  persistData();
-  resetTeamForm();
-}
 
     function editTeamMember(index) {
       const member = teamMembers[index];
@@ -1278,7 +1274,7 @@
         tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#888; padding: 24px;">No matching records found.</td></tr>`;
         return;
       }
-	  // Paste these lines inside renderTable() to update the KPI counts live:
+
       document.getElementById('kpiTotal').innerText = filtered.length;
       document.getElementById('kpiHot').innerText = filtered.filter(b => b.status === 'Hot').length;
       document.getElementById('kpiVisits').innerText = filtered.filter(b => b.stage === 'Site Visit Scheduled').length;
@@ -1293,7 +1289,6 @@
           <tr>
             <td data-label="Buyer"><strong>${b.name}</strong></td>
             
-            <!-- Phone & WhatsApp Icons -->
             <td data-label="Phone & Connect" style="white-space: nowrap;">
               ${b.phone ? `
                 <a href="tel:${b.phone}" onclick="logContactAction(${actualIndex}, 'Call')" title="Call Buyer" style="text-decoration:none; margin-right:4px; font-size:15px;">📞</a>
@@ -1305,7 +1300,6 @@
             <td data-label="Team">${b.member || 'Unassigned'}</td>
             <td data-label="Source"><span class="source-tag">${b.source}</span></td>
             
-            <!-- Status Badge & Quick Flag Dropdown -->
             <td data-label="Status">
               <span class="badge badge-${(b.status || 'warm').toLowerCase()}">${b.status}</span>
               <div style="margin-top: 4px;">
@@ -1323,7 +1317,6 @@
             <td data-label="Last Contacted"><span class="last-contacted-badge">${b.lastContacted || '-'}</span></td>
             <td data-label="Follow Up"><strong>${followUpString}</strong></td>
             
-            <!-- Notes with Quick Append Input -->
             <td data-label="Notes" style="max-width: 240px;">
               <div style="font-size: 0.75rem; max-height: 50px; overflow-y: auto; white-space: pre-wrap; margin-bottom: 4px; color:#334155;">${b.notes || 'No notes'}</div>
               <div style="display: flex; gap: 4px;">
@@ -1431,8 +1424,6 @@
       reader.onload = function (e) {
         const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        
-        // Read rows as a raw array of arrays
         const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
         if (rows.length < 2) {
@@ -1442,21 +1433,9 @@
 
         buyers = [];
 
-        // Loop through data rows starting from row index 1 (skipping header row 0)
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i];
           if (!r || r.length === 0) continue;
-
-          // Column Index Mapping based on your exact CSV layout:
-          // r[0] = Buyer Name
-          // r[1] = Phone
-          // r[2] = Team Member
-          // r[3] = Source
-          // r[4] = Temperature
-          // r[5] = Stage
-          // r[6] = FollowUp Date
-          // r[7] = FollowUp Time
-          // r[8] = Notes
 
           const name = r[0] ? String(r[0]).trim() : '';
           if (!name) continue;
