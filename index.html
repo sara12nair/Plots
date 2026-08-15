@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Prospective Buyer Tracker & CRM</title>
+  
+  <!-- SHEETJS LIBRARY FOR DIRECT EXCEL (.XLSX / .XLS) PARSING & EXPORT -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- FIREBASE SDKs (Realtime Cloud Sync) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <!-- GOOGLE FONTS FOR REFINED TYPOGRAPHY -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --success: #10b981;
+      --success-hover: #059669;
+      --teal: #0d9488;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding-bottom: 90px;
+      background-color: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      background: linear-gradient(135deg, #312e81 0%, #4f46e5 100%);
+      color: white;
+      padding: 22px 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(79, 70, 229, 0.2);
+    }
+
+    header h2 { 
+      margin: 0; 
+      font-size: 1.35rem; 
+      font-weight: 700;
+      letter-spacing: 0.5px; 
+    }
+
+    .tab-nav {
+      display: flex;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 1000;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+      padding: 6px 10px;
+      gap: 6px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn .icon { font-size: 1.25rem; }
+    .tab-btn:hover { color: var(--primary); background: #f1f5f9; }
+    .tab-btn.active { color: var(--primary); background: #e0e7ff; font-weight: 700; }
+
+    .tab-content { display: none; padding: 20px; max-width: 1400px; margin: 0 auto; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease-in-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .card h3 { 
+      margin-top: 0; 
+      font-size: 1rem; 
+      font-weight: 700;
+      color: var(--text); 
+      border-bottom: 2px solid #f1f5f9; 
+      padding-bottom: 12px; 
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.75rem;
+      display: block;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: var(--text);
+      background-color: #fff;
+      transition: all 0.2s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+
+    button {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      font-family: inherit;
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .btn-save { background-color: var(--success); color: white; }
+    .btn-save:hover { background-color: var(--success-hover); }
+
+    .btn-manage { background-color: var(--primary); color: white; }
+    .btn-manage:hover { background-color: var(--primary-hover); }
+
+    .btn-import { background-color: var(--teal); color: white; }
+    .btn-import:hover { background-color: #0f766e; }
+
+    .btn-edit { background-color: var(--primary); color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; width: auto; margin-right: 4px; box-shadow: none; }
+    .btn-danger { background-color: var(--danger); color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; width: auto; box-shadow: none; }
+    .btn-danger:hover { background-color: var(--danger-hover); }
+    .btn-small { padding: 8px 12px; font-size: 0.75rem; width: auto; border-radius: 6px; }
+
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      font-size: 0.875rem;
+      min-width: 900px;
+      text-align: left;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+
+    th {
+      background-color: #f8fafc;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    th:hover { background-color: #f1f5f9; color: var(--primary); }
+    tr:hover td { background-color: #f8fafc; }
+
+    th .sort-icon {
+      font-size: 0.65rem;
+      margin-left: 6px;
+      color: #94a3b8;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: inline-block;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-hot { background: #fee2e2; color: #991b1b; }
+    .badge-warm { background: #ffedd5; color: #9a3412; }
+    .badge-cold { background: #e0e7ff; color: #3730a3; }
+
+    .source-tag {
+      background: #ccfbf1;
+      color: #115e59;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .hint {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 8px;
+      display: block;
+      line-height: 1.4;
+    }
+
+    .list-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .contact-link {
+      text-decoration: none;
+      font-weight: 600;
+      color: var(--primary);
+      margin-right: 8px;
+    }
+    .contact-link:hover { text-decoration: underline; }
+
+    .wa-link { text-decoration: none; font-size: 1.1rem; vertical-align: middle; }
+
+    .last-contacted-badge {
+      font-size: 0.75rem;
+      color: var(--success);
+      font-weight: 600;
+      background: #d1fae5;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    .expandable-notes {
+      display: none;
+      font-size: 0.8rem;
+      color: #334155;
+      background: #f8fafc;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 6px;
+      white-space: pre-wrap;
+      border: 1px solid var(--border);
+      max-width: 280px;
+    }
+
+    .expandable-notes.active { display: block; }
+
+    .pagination-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @media screen and (max-width: 768px) {
+      .table-responsive table, 
+      .table-responsive thead, 
+      .table-responsive tbody, 
+      .table-responsive th, 
+      .table-responsive td, 
+      .table-responsive tr { 
+        display: block; 
+      }
+
+      .table-responsive table { min-width: 100%; border: none; }
+      .table-responsive thead { display: none; }
+      
+      .table-responsive tr {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 12px;
+        padding: 14px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .table-responsive td {
+        border: none;
+        padding: 6px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+      }
+
+      .table-responsive td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: var(--text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        margin-right: 12px;
+        letter-spacing: 0.5px;
+      }
+
+      .table-responsive td[data-label="Buyer"] {
+        font-size: 1.05rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 10px;
+        margin-bottom: 8px;
+        color: var(--primary);
+      }
+
+      .table-responsive td[data-label="Buyer"]::before { display: none; }
+      
+      .table-responsive td[data-label="Actions"] {
+        border-top: 1px solid var(--border);
+        margin-top: 10px;
+        padding-top: 10px;
+        justify-content: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>Buyer Tracker CRM (Cloud Sync Active ⚡)</h2>
+  </header>
+
+  <!-- TAB NAVIGATION -->
+  <nav class="tab-nav">
+    <button type="button" class="tab-btn active" onclick="switchTab('tab-directory')">
+      <span class="icon">📊</span>
+      <span>Directory</span>
+    </button>
+    <button type="button" class="tab-btn" onclick="switchTab('tab-add-buyer')">
+      <span class="icon">📌</span>
+      <span>Add Buyer</span>
+    </button>
+    <button type="button" class="tab-btn" onclick="switchTab('tab-team')">
+      <span class="icon">👥</span>
+      <span>Team & Setup</span>
+    </button>
+    <button type="button" class="tab-btn" onclick="switchTab('tab-import')">
+      <span class="icon">📥</span>
+      <span>Bulk Import</span>
+    </button>
+  </nav>
+
+  <!-- TAB 1: DIRECTORY -->
+  <div id="tab-directory" class="tab-content active">
+    <div class="card">
+      <h3>🔍 Buyer Directory & Quick Filters</h3>
+      <div class="grid">
+        <div>
+          <label for="filterAgent">Team Member</label>
+          <select id="filterAgent" onchange="renderTable()"><option value="ALL">All Team Members</option></select>
+        </div>
+        <div>
+          <label for="filterSource">Lead Source</label>
+          <select id="filterSource" onchange="renderTable()"><option value="ALL">All Sources</option></select>
+        </div>
+        <div>
+          <label for="filterStage">Stage</label>
+          <select id="filterStage" onchange="renderTable()"><option value="ALL">All Stages</option></select>
+        </div>
+        <div>
+          <label for="searchKeyword">Buyer Name / Phone</label>
+          <input type="text" id="searchKeyword" placeholder="Search name or phone..." oninput="renderTable()">
+        </div>
+        <div>
+          <label for="searchNotes">Notes / Footnotes</label>
+          <input type="text" id="searchNotes" placeholder="e.g. call, transfer, visit..." oninput="renderTable()">
+        </div>
+        <div>
+          <label for="fromDate">Follow Up (From Date)</label>
+          <input type="date" id="fromDate" onchange="renderTable()">
+        </div>
+        <div>
+          <label for="toDate">Follow Up (To Date)</label>
+          <input type="date" id="toDate" onchange="renderTable()">
+        </div>
+      </div>
+
+      <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="hideInactive" checked onchange="renderTable()" style="width: 16px; height: 16px; accent-color: var(--primary);">
+          <label for="hideInactive" style="margin: 0; text-transform: none; cursor: pointer; font-weight: 500;">
+            Hide Inactive (Not Responding / Not Interested)
+          </label>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" onclick="toggleAllNotes()" class="btn-small" style="background:#0284c7; color:white;">↔ Expand / Collapse Notes</button>
+          <button type="button" onclick="resetFilters()" class="btn-small" style="background: #475569; color: white;">Reset All Filters</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTable('name')">Buyer <span id="sort-name" class="sort-icon">▲▼</span></th>
+              <th>Phone & Connect</th>
+              <th onclick="sortTable('member')">Team <span id="sort-member" class="sort-icon">▲▼</span></th>
+              <th onclick="sortTable('source')">Source <span id="sort-source" class="sort-icon">▲▼</span></th>
+              <th onclick="sortTable('status')">Status <span id="sort-status" class="sort-icon">▲▼</span></th>
+              <th onclick="sortTable('stage')">Stage <span id="sort-stage" class="sort-icon">▲▼</span></th>
+              <th onclick="sortTable('lastContacted')">Last Contacted <span id="sort-lastContacted" class="sort-icon">▲▼</span></th>
+              <th onclick="sortTable('followUpDate')">Follow Up <span id="sort-followUpDate" class="sort-icon">▲▼</span></th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="buyerTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination-container">
+        <div style="font-size: 0.85rem; color: var(--text-muted);">
+          Showing <span id="pageStart" style="font-weight: 600; color: var(--text);">0</span> - <span id="pageEnd" style="font-weight: 600; color: var(--text);">0</span> of <span id="totalRecords" style="font-weight: 600; color: var(--text);">0</span> records
+        </div>
+        <div class="pagination-controls">
+          <label for="rowsPerPage" style="margin: 0; font-size: 0.75rem;">Per Page:</label>
+          <select id="rowsPerPage" onchange="changeRowsPerPage()" style="width: auto; padding: 6px 10px; font-size: 0.8rem;">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+          <button type="button" onclick="prevPage()" class="btn-small" style="background:var(--primary); color:white;">◀</button>
+          <span id="pageIndicator" style="font-size: 0.85rem; font-weight: 700; margin: 0 6px;">1 / 1</span>
+          <button type="button" onclick="nextPage()" class="btn-small" style="background:var(--primary); color:white;">▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: ADD / EDIT BUYER -->
+  <div id="tab-add-buyer" class="tab-content">
+    <div class="card">
+      <h3 id="buyerFormHeading">📌 Buyer Information & Tracking</h3>
+      <form id="buyerForm" onsubmit="event.preventDefault(); saveBuyer();">
+        <input type="hidden" id="editBuyerIndex" value="-1">
+        <div class="grid">
+          <div>
+            <label for="buyerName">Buyer *</label>
+            <input type="text" id="buyerName" required placeholder="Enter buyer name">
+          </div>
+          <div>
+            <label for="buyerPhone">Phone</label>
+            <input type="tel" id="buyerPhone" placeholder="Enter phone number">
+          </div>
+          <div>
+            <label for="assignedMember">Team</label>
+            <select id="assignedMember"></select>
+          </div>
+          <div>
+            <label for="leadSource">Lead Source *</label>
+            <select id="leadSource" required></select>
+          </div>
+          <div>
+            <label for="leadStatus">Temperature</label>
+            <select id="leadStatus">
+              <option value="Hot">Hot</option>
+              <option value="Warm" selected>Warm</option>
+              <option value="Cold">Cold</option>
+            </select>
+          </div>
+          <div>
+            <label for="lifecycleStage">Stage</label>
+            <select id="lifecycleStage" required></select>
+          </div>
+          <div>
+            <label for="followUpDate">Follow up</label>
+            <input type="date" id="followUpDate">
+          </div>
+          <div>
+            <label for="followUpTime">Time</label>
+            <input type="time" id="followUpTime">
+          </div>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label for="buyerNotes">Notes / Special Instructions</label>
+          <textarea id="buyerNotes" rows="3" placeholder="Add any details or call history..."></textarea>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <button type="submit" class="btn-save" id="saveBuyerBtn">SAVE BUYER RECORD</button>
+          <button type="button" id="cancelBuyerEditBtn" onclick="resetBuyerForm()" style="background:#64748b; color:white; display:none; width: auto;">Cancel Edit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TAB 3: TEAM & SETUP MANAGEMENT -->
+  <div id="tab-team" class="tab-content">
+    <div class="card">
+      <h3 id="teamFormHeading">👥 Team Member Management</h3>
+      <form id="teamForm" onsubmit="event.preventDefault(); saveTeamMember();">
+        <input type="hidden" id="editTeamIndex" value="-1">
+        <div class="grid">
+          <div>
+            <label for="newMemberName">Member Name *</label>
+            <input type="text" id="newMemberName" placeholder="e.g. Rahul Verma" required>
+          </div>
+          <div>
+            <label for="newMemberPhone">Member Phone *</label>
+            <input type="tel" id="newMemberPhone" placeholder="e.g. +91 9876543210" required>
+          </div>
+          <div>
+            <label for="newMemberDesignation">Designation *</label>
+            <input type="text" id="newMemberDesignation" placeholder="e.g. Sr. Sales Exec / DVP" required>
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <button type="submit" class="btn-manage" id="teamSubmitBtn" style="width: auto;">+ Add Team Member</button>
+          <button type="button" id="cancelTeamEditBtn" onclick="resetTeamForm()" style="background:#64748b; color:white; display:none; width: auto;">Cancel Edit</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>🔄 Manage Stages</h3>
+      <form onsubmit="event.preventDefault(); saveStage();">
+        <input type="hidden" id="editStageIndex" value="-1">
+        <div class="grid">
+          <div>
+            <label for="stageInput">Stage Name</label>
+            <input type="text" id="stageInput" placeholder="e.g. Out of Coverage" required>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 8px;">
+          <button type="submit" class="btn-manage" id="stageSubmitBtn" style="width: auto;">+ Add Stage</button>
+          <button type="button" id="cancelStageEditBtn" onclick="resetStageForm()" style="background:#64748b; color:white; display:none; width: auto;">Cancel</button>
+        </div>
+      </form>
+      <div id="stageListContainer" style="margin-top: 16px;"></div>
+    </div>
+
+    <div class="card">
+      <h3>➕ Add Lead Source</h3>
+      <form onsubmit="event.preventDefault(); addSource();">
+        <div class="grid">
+          <div>
+            <label for="newSource">Source Name</label>
+            <input type="text" id="newSource" placeholder="e.g. LinkedIn Ads" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-manage" style="margin-top: 8px; width: auto;">+ Add Source</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>📋 Team Directory</h3>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone & Connect</th>
+              <th>Designation</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="teamTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: BULK IMPORT & SYNC -->
+  <div id="tab-import" class="tab-content">
+    <div class="card" style="border-left: 4px solid var(--danger);">
+      <h3 style="color: var(--danger);">📦 Archive & Clean Inactive Records</h3>
+      <p class="hint">Export records marked as <strong>'Not Responding'</strong> or <strong>'Not Interested'</strong> to keep app memory fast.</p>
+      <div style="display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap;">
+        <button type="button" onclick="archiveInactiveBuyers('xlsx')" class="btn-manage" style="background:#c2410c; flex: 1;">📊 Export & Purge to Excel (.XLSX)</button>
+        <button type="button" onclick="archiveInactiveBuyers('json')" class="btn-manage" style="background:#9a3412; flex: 1;">📄 Export & Purge to JSON</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔄 Offline Cloud Backup & Restore</h3>
+      <p class="hint">Your data syncs automatically in the cloud. You can also export or restore a backup file anytime.</p>
+      <div style="display: flex; gap: 12px; margin-top: 14px;">
+        <button type="button" onclick="exportDatabase()" class="btn-manage" style="background:#15803d; width: auto;">📥 Export All Data (JSON)</button>
+      </div>
+      <div style="margin-top: 18px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <label for="jsonFileInput">Import Full Backup (JSON)</label>
+        <input type="file" id="jsonFileInput" accept=".json" style="margin-bottom: 10px;">
+        <button type="button" onclick="importDatabase()" class="btn-import" style="width: auto;">Upload & Restore Data</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>👥 Import Team Members (Excel / CSV)</h3>
+      <input type="file" id="teamFileInput" accept=".xlsx, .xls, .csv" style="margin-bottom: 10px;">
+      <button type="button" onclick="importTeamFile()" class="btn-import" style="width: auto;">Upload Team File</button>
+    </div>
+
+    <div class="card">
+      <h3>📥 Import Buyers (Excel / CSV)</h3>
+      <input type="file" id="buyerFileInput" accept=".xlsx, .xls, .csv" style="margin-bottom: 10px;">
+      <button type="button" onclick="importBuyerFile()" class="btn-import" style="width: auto;">Upload Buyers File</button>
+    </div>
+  </div>
+
+  <script>
+    // --- FIREBASE CONFIGURATION ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCBB47hq5B4OIII5OdBvdc0egLGwaozbX4",
+      authDomain: "asset-tracker-690517.firebaseapp.com",
+      databaseURL: "https://asset-tracker-690517-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "asset-tracker-690517",
+      storageBucket: "asset-tracker-690517.firebasestorage.app",
+      messagingSenderId: "18917871208",
+      appId: "1:18917871208:web:9dc26624659c84f62bf5dd"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentSortColumn = '';
+    let sortAscending = true;
+    let allNotesExpanded = false;
+    let currentPage = 1;
+    let rowsPerPage = 50;
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.add('active');
+      
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => {
+        const onclickAttr = btn.getAttribute('onclick');
+        return onclickAttr && onclickAttr.includes(tabId);
+      });
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    let teamMembers = [];
+    let leadSources = [];
+    let stages = [];
+    let buyers = [];
+
+    // --- REALTIME SYNC LISTENER FROM FIREBASE ---
+    db.ref('teambuyers_crm').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        teamMembers = data.teamMembers || getDefaultTeam();
+        leadSources = data.leadSources || getDefaultSources();
+        stages = data.stages || getDefaultStages();
+        buyers = data.buyers || [];
+      } else {
+        teamMembers = getDefaultTeam();
+        leadSources = getDefaultSources();
+        stages = getDefaultStages();
+        buyers = [];
+        persistData();
+      }
+      renderDropdowns();
+      renderTable();
+    });
+
+    function getDefaultTeam() {
+      return [
+        { name: 'Sashi Nair', phone: '9876543210', designation: 'DVP' },
+        { name: 'Gogul', phone: '9841414448', designation: 'TIA' },
+        { name: 'Rajesh Sharma', phone: '9876543212', designation: 'Sales Manager' },
+        { name: 'Prasanna KB', phone: '9500058986', designation: 'TIA' },
+        { name: 'KG', phone: '9841414448', designation: 'TIA' },
+        { name: 'Meena Sasi', phone: '9710212480', designation: 'TIA' }
+      ];
+    }
+
+    function getDefaultSources() {
+      return ['Referral', 'Facebook', 'Instagram', 'Poster', 'Direct', 'Google Search', 'Whatsapp', 'Workindia', 'self', 'WI'];
+    }
+
+    function getDefaultStages() {
+      return ['New Lead', 'Site Visit Scheduled', 'Negotiation', 'Closed / Won', 'Not Responding', 'Not Interested', 'Out of Coverage'];
+    }
+
+    function persistData() {
+      db.ref('teambuyers_crm').set({
+        teamMembers,
+        leadSources,
+        stages,
+        buyers
+      });
+    }
+
+    function getArchiveTimestamp() {
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      return `${yy}_${mm}_${dd}-${hh}:${min}`;
+    }
+
+    function getShortFormattedTimestamp() {
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = String(now.getFullYear()).slice(-2);
+      const formattedTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return `${day}/${month}/${year} ${formattedTime}`;
+    }
+
+    function logContactAction(buyerIndex, type) {
+      const buyer = buyers[buyerIndex];
+      if (!buyer) return;
+
+      const formattedTimestamp = getShortFormattedTimestamp();
+      const actionTag = (type === 'WhatsApp') ? 'WA' : 'Call';
+      buyer.lastContacted = `${actionTag} on ${formattedTimestamp}`;
+
+      const quickNote = prompt(`Logged ${actionTag} for ${buyer.name} at ${formattedTimestamp}.\nAdd a quick response note (Optional):`);
+      if (quickNote && quickNote.trim()) {
+        const existingNotes = buyer.notes ? `${buyer.notes}\n` : '';
+        buyer.notes = `${existingNotes}[${formattedTimestamp} ${actionTag}]: ${quickNote.trim()}`;
+      }
+
+      persistData();
+    }
+
+    function toggleAllNotes() {
+      allNotesExpanded = !allNotesExpanded;
+      document.querySelectorAll('.expandable-notes').forEach(div => {
+        if (allNotesExpanded) div.classList.add('active');
+        else div.classList.remove('active');
+      });
+    }
+
+    function toggleNote(idx) {
+      const el = document.getElementById(`note-${idx}`);
+      if (el) el.classList.toggle('active');
+    }
+
+    function renderDropdowns() {
+      const memberSelect = document.getElementById('assignedMember');
+      const sourceSelect = document.getElementById('leadSource');
+      const stageSelect = document.getElementById('lifecycleStage');
+      
+      const filterAgent = document.getElementById('filterAgent');
+      const filterSource = document.getElementById('filterSource');
+      const filterStage = document.getElementById('filterStage');
+
+      const memberOptions = '<option value="">Unassigned</option>' + teamMembers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+      const sourceOptions = leadSources.map(s => `<option value="${s}">${s}</option>`).join('');
+      const stageOptions = stages.map(st => `<option value="${st}">${st}</option>`).join('');
+
+      if (memberSelect) memberSelect.innerHTML = memberOptions;
+      if (sourceSelect) sourceSelect.innerHTML = sourceOptions;
+      if (stageSelect) stageSelect.innerHTML = stageOptions;
+
+      if (filterAgent) filterAgent.innerHTML = '<option value="ALL">All Team Members</option>' + teamMembers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+      if (filterSource) filterSource.innerHTML = '<option value="ALL">All Sources</option>' + sourceOptions;
+      if (filterStage) filterStage.innerHTML = '<option value="ALL">All Stages</option>' + stageOptions;
+
+      renderTeamTable();
+      renderStageList();
+    }
+
+    function renderStageList() {
+      const container = document.getElementById('stageListContainer');
+      if (!container) return;
+
+      container.innerHTML = stages.map((st, idx) => `
+        <div class="list-item-row">
+          <span><strong>${st}</strong></span>
+          <div>
+            <button type="button" class="btn-edit" onclick="editStage(${idx})">Edit</button>
+            <button type="button" class="btn-danger" onclick="deleteStage(${idx})">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function saveStage() {
+      const index = parseInt(document.getElementById('editStageIndex').value, 10);
+      const val = document.getElementById('stageInput').value.trim();
+      if (!val) return;
+
+      if (index >= 0) {
+        stages[index] = val;
+      } else if (!stages.includes(val)) {
+        stages.push(val);
+      }
+
+      persistData();
+      resetStageForm();
+    }
+
+    function editStage(index) {
+      document.getElementById('editStageIndex').value = index;
+      document.getElementById('stageInput').value = stages[index];
+      document.getElementById('stageSubmitBtn').innerText = 'Update Stage';
+      document.getElementById('cancelStageEditBtn').style.display = 'inline-block';
+    }
+
+    function resetStageForm() {
+      document.getElementById('editStageIndex').value = "-1";
+      document.getElementById('stageInput').value = "";
+      document.getElementById('stageSubmitBtn').innerText = '+ Add Stage';
+      document.getElementById('cancelStageEditBtn').style.display = 'none';
+    }
+
+    function deleteStage(index) {
+      if (confirm(`Delete stage "${stages[index]}"?`)) {
+        stages.splice(index, 1);
+        persistData();
+      }
+    }
+
+    function renderTeamTable() {
+      const tbody = document.getElementById('teamTableBody');
+      if (!tbody) return;
+
+      if (teamMembers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">No team members added.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = teamMembers.map((m, idx) => `
+        <tr>
+          <td data-label="Name"><strong>${m.name}</strong></td>
+          <td data-label="Phone & Connect">
+            <a href="tel:${m.phone}" class="contact-link">📞 ${m.phone}</a>
+            <a href="https://wa.me/${m.phone.replace(/[^0-9]/g, '')}" target="_blank" class="wa-link">💬</a>
+          </td>
+          <td data-label="Designation"><span class="source-tag">${m.designation}</span></td>
+          <td data-label="Action">
+            <button type="button" class="btn-edit" onclick="editTeamMember(${idx})">Edit</button>
+            <button type="button" class="btn-danger" onclick="deleteTeamMember(${idx})">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function saveTeamMember() {
+      const index = parseInt(document.getElementById('editTeamIndex').value, 10);
+      const name = document.getElementById('newMemberName').value.trim();
+      const phone = document.getElementById('newMemberPhone').value.trim();
+      const designation = document.getElementById('newMemberDesignation').value.trim();
+
+      if (!name || !phone || !designation) return;
+
+      if (index >= 0) {
+        teamMembers[index] = { name, phone, designation };
+      } else {
+        teamMembers.push({ name, phone, designation });
+      }
+
+      persistData();
+      resetTeamForm();
+    }
+
+    function editTeamMember(index) {
+      const member = teamMembers[index];
+      if (!member) return;
+
+      document.getElementById('editTeamIndex').value = index;
+      document.getElementById('newMemberName').value = member.name;
+      document.getElementById('newMemberPhone').value = member.phone;
+      document.getElementById('newMemberDesignation').value = member.designation;
+
+      document.getElementById('teamFormHeading').innerText = '✏️ Edit Team Member';
+      document.getElementById('teamSubmitBtn').innerText = 'UPDATE TEAM MEMBER';
+      document.getElementById('cancelTeamEditBtn').style.display = 'inline-block';
+    }
+
+    function resetTeamForm() {
+      document.getElementById('editTeamIndex').value = "-1";
+      document.getElementById('teamForm').reset();
+      document.getElementById('teamFormHeading').innerText = '👥 Team Member Management';
+      document.getElementById('teamSubmitBtn').innerText = '+ Add Team Member';
+      document.getElementById('cancelTeamEditBtn').style.display = 'none';
+    }
+
+    function deleteTeamMember(index) {
+      if (confirm('Are you sure you want to remove this team member?')) {
+        teamMembers.splice(index, 1);
+        persistData();
+      }
+    }
+
+    function addSource() {
+      const input = document.getElementById('newSource');
+      const val = input.value.trim();
+      if (val && !leadSources.includes(val)) {
+        leadSources.push(val);
+        input.value = '';
+        persistData();
+      }
+    }
+
+    function saveBuyer() {
+      const index = parseInt(document.getElementById('editBuyerIndex').value, 10);
+      const name = document.getElementById('buyerName').value.trim();
+      if (!name) return;
+
+      const existingRecord = index >= 0 ? buyers[index] : {};
+
+      const buyerRecord = {
+        name: name,
+        phone: document.getElementById('buyerPhone').value.trim(),
+        member: document.getElementById('assignedMember').value || 'Unassigned',
+        source: document.getElementById('leadSource').value,
+        status: document.getElementById('leadStatus').value,
+        stage: document.getElementById('lifecycleStage').value,
+        followUpDate: document.getElementById('followUpDate').value,
+        followUpTime: document.getElementById('followUpTime').value,
+        notes: document.getElementById('buyerNotes').value.trim(),
+        lastContacted: existingRecord.lastContacted || ''
+      };
+
+      if (index >= 0) {
+        buyers[index] = buyerRecord;
+      } else {
+        buyers.push(buyerRecord);
+      }
+
+      persistData();
+      resetBuyerForm();
+      switchTab('tab-directory');
+    }
+
+    function editBuyer(index) {
+      const buyer = buyers[index];
+      if (!buyer) return;
+
+      document.getElementById('editBuyerIndex').value = index;
+      document.getElementById('buyerName').value = buyer.name;
+      document.getElementById('buyerPhone').value = buyer.phone || '';
+      document.getElementById('assignedMember').value = buyer.member || '';
+      document.getElementById('leadSource').value = buyer.source;
+      document.getElementById('leadStatus').value = buyer.status;
+      document.getElementById('lifecycleStage').value = buyer.stage;
+      document.getElementById('followUpDate').value = buyer.followUpDate || '';
+      document.getElementById('followUpTime').value = buyer.followUpTime || '';
+      document.getElementById('buyerNotes').value = buyer.notes || '';
+
+      document.getElementById('buyerFormHeading').innerText = '✏️ Edit Buyer Record';
+      document.getElementById('saveBuyerBtn').innerText = 'UPDATE BUYER RECORD';
+      document.getElementById('cancelBuyerEditBtn').style.display = 'inline-block';
+
+      switchTab('tab-add-buyer');
+    }
+
+    function deleteBuyer(index) {
+      if (confirm('Are you sure you want to delete this buyer record?')) {
+        buyers.splice(index, 1);
+        persistData();
+      }
+    }
+
+    function resetBuyerForm() {
+      document.getElementById('editBuyerIndex').value = "-1";
+      document.getElementById('buyerForm').reset();
+      document.getElementById('buyerFormHeading').innerText = '📌 Buyer Information & Tracking';
+      document.getElementById('saveBuyerBtn').innerText = 'SAVE BUYER RECORD';
+      document.getElementById('cancelBuyerEditBtn').style.display = 'none';
+    }
+
+    function sortTable(columnKey) {
+      if (currentSortColumn === columnKey) {
+        sortAscending = !sortAscending;
+      } else {
+        currentSortColumn = columnKey;
+        sortAscending = true;
+      }
+
+      document.querySelectorAll('.sort-icon').forEach(span => span.innerText = '▲▼');
+      const activeSpan = document.getElementById(`sort-${columnKey}`);
+      if (activeSpan) activeSpan.innerText = sortAscending ? '▲' : '▼';
+
+      renderTable();
+    }
+
+    function resetFilters() {
+      document.getElementById('filterAgent').value = 'ALL';
+      document.getElementById('filterSource').value = 'ALL';
+      document.getElementById('filterStage').value = 'ALL';
+      document.getElementById('searchKeyword').value = '';
+      document.getElementById('searchNotes').value = '';
+      document.getElementById('fromDate').value = '';
+      document.getElementById('toDate').value = '';
+      document.getElementById('hideInactive').checked = true;
+      currentPage = 1;
+      renderTable();
+    }
+
+    function changeRowsPerPage() {
+      rowsPerPage = parseInt(document.getElementById('rowsPerPage').value, 10);
+      currentPage = 1;
+      renderTable();
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTable();
+      }
+    }
+
+    function nextPage() {
+      currentPage++;
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('buyerTableBody');
+      if (!tbody) return;
+
+      const agentFilter = document.getElementById('filterAgent').value;
+      const sourceFilter = document.getElementById('filterSource').value;
+      const stageFilter = document.getElementById('filterStage').value;
+      const searchKeyword = document.getElementById('searchKeyword').value.toLowerCase().trim();
+      const searchNotes = document.getElementById('searchNotes').value.toLowerCase().trim();
+      const fromDate = document.getElementById('fromDate').value;
+      const toDate = document.getElementById('toDate').value;
+      const hideInactive = document.getElementById('hideInactive').checked;
+
+      let indexedBuyers = buyers.map((b, idx) => ({ ...b, originalIndex: idx }));
+
+      let filtered = indexedBuyers.filter(b => {
+        if (hideInactive && (b.stage === 'Not Responding' || b.stage === 'Not Interested')) return false;
+        if (agentFilter !== 'ALL' && b.member !== agentFilter) return false;
+        if (sourceFilter !== 'ALL' && b.source !== sourceFilter) return false;
+        if (stageFilter !== 'ALL' && b.stage !== stageFilter) return false;
+
+        if (searchKeyword && !`${b.name} ${b.phone}`.toLowerCase().includes(searchKeyword)) return false;
+        if (searchNotes && !(b.notes || '').toLowerCase().includes(searchNotes)) return false;
+
+        if (fromDate && b.followUpDate && b.followUpDate < fromDate) return false;
+        if (toDate && b.followUpDate && b.followUpDate > toDate) return false;
+        if ((fromDate || toDate) && !b.followUpDate) return false;
+
+        return true;
+      });
+
+      if (currentSortColumn) {
+        filtered.sort((a, b) => {
+          let valA = (a[currentSortColumn] || '').toString().toLowerCase();
+          let valB = (b[currentSortColumn] || '').toString().toLowerCase();
+          if (valA < valB) return sortAscending ? -1 : 1;
+          if (valA > valB) return sortAscending ? 1 : -1;
+          return 0;
+        });
+      }
+
+      const totalRecords = filtered.length;
+      const totalPages = Math.ceil(totalRecords / rowsPerPage) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIdx = (currentPage - 1) * rowsPerPage;
+      const endIdx = Math.min(startIdx + rowsPerPage, totalRecords);
+      const pageSlice = filtered.slice(startIdx, endIdx);
+
+      document.getElementById('totalRecords').innerText = totalRecords;
+      document.getElementById('pageStart').innerText = totalRecords === 0 ? 0 : startIdx + 1;
+      document.getElementById('pageEnd').innerText = endIdx;
+      document.getElementById('pageIndicator').innerText = `${currentPage} / ${totalPages}`;
+
+      if (pageSlice.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#888; padding: 24px;">No matching records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = pageSlice.map(b => {
+        const actualIndex = b.originalIndex;
+        const cleanPhone = (b.phone || '').replace(/[^0-9]/g, '');
+        const followUpString = (b.followUpDate || b.followUpTime) ? `${b.followUpDate || ''} ${b.followUpTime || ''}`.trim() : '-';
+        const isNotesExpandedClass = allNotesExpanded ? 'active' : '';
+
+        return `
+          <tr>
+            <td data-label="Buyer"><strong>${b.name}</strong></td>
+            <td data-label="Phone & Connect">
+              ${b.phone ? `<a href="tel:${b.phone}" onclick="logContactAction(${actualIndex}, 'Call')" class="contact-link">📞 ${b.phone}</a>
+              <a href="https://wa.me/${cleanPhone}" target="_blank" onclick="logContactAction(${actualIndex}, 'WhatsApp')" class="wa-link">💬</a>` : '-'}
+            </td>
+            <td data-label="Team">${b.member || 'Unassigned'}</td>
+            <td data-label="Source"><span class="source-tag">${b.source}</span></td>
+            <td data-label="Status"><span class="badge badge-${(b.status || 'warm').toLowerCase()}">${b.status}</span></td>
+            <td data-label="Stage">${b.stage}</td>
+            <td data-label="Last Contacted"><span class="last-contacted-badge">${b.lastContacted || '-'}</span></td>
+            <td data-label="Follow Up"><strong>${followUpString}</strong></td>
+            <td data-label="Notes">
+              <button type="button" onclick="toggleNote(${actualIndex})" style="padding:4px 8px; font-size:0.75rem; background:#f1f5f9; color:#334155; border: 1px solid var(--border); border-radius:4px; width:auto;">View Note</button>
+              <div id="note-${actualIndex}" class="expandable-notes ${isNotesExpandedClass}">${b.notes || '-'}</div>
+            </td>
+            <td data-label="Actions">
+              <button type="button" class="btn-edit" onclick="editBuyer(${actualIndex})">Edit</button>
+              <button type="button" class="btn-danger" onclick="deleteBuyer(${actualIndex})">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function archiveInactiveBuyers(format) {
+      const inactiveBuyers = buyers.filter(b => b.stage === 'Not Responding' || b.stage === 'Not Interested');
+      if (inactiveBuyers.length === 0) {
+        alert("No inactive buyers found to archive.");
+        return;
+      }
+
+      const timestamp = getArchiveTimestamp();
+      const filename = `Buyer_Archive_${timestamp}.${format}`;
+
+      if (format === 'xlsx') {
+        const worksheetData = inactiveBuyers.map(b => ({
+          Buyer: b.name, Phone: b.phone, 'Team Member': b.member, Source: b.source, Temperature: b.status, Stage: b.stage, 'FollowUp Date': b.followUpDate, Notes: b.notes
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Archived Buyers");
+        XLSX.writeFile(workbook, filename);
+      } else {
+        const blob = new Blob([JSON.stringify(inactiveBuyers, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+      }
+
+      buyers = buyers.filter(b => b.stage !== 'Not Responding' && b.stage !== 'Not Interested');
+      persistData();
+      alert(`Successfully archived and purged ${inactiveBuyers.length} records.`);
+    }
+
+    function exportDatabase() {
+      const blob = new Blob([JSON.stringify({ teamMembers, leadSources, stages, buyers }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `CRM_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    }
+
+    function importDatabase() {
+      const fileInput = document.getElementById('jsonFileInput');
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.teamMembers) teamMembers = data.teamMembers;
+          if (data.leadSources) leadSources = data.leadSources;
+          if (data.stages) stages = data.stages;
+          if (data.buyers) buyers = data.buyers;
+          persistData();
+          alert(`✅ Success: Backup restored to cloud!`);
+        } catch (err) { alert(`❌ Error loading file.`); }
+      };
+      reader.readAsText(file);
+    }
+
+    function importTeamFile() {
+      const fileInput = document.getElementById('teamFileInput');
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        for (let i = 1; i < rows.length; i++) {
+          if (rows[i] && rows[i][0]) {
+            teamMembers.push({ name: String(rows[i][0]).trim(), phone: String(rows[i][1] || '').trim(), designation: String(rows[i][2] || '').trim() });
+          }
+        }
+        persistData();
+        alert(`✅ Team imported successfully!`);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function importBuyerFile() {
+      const fileInput = document.getElementById('buyerFileInput');
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawObjects = XLSX.utils.sheet_to_json(firstSheet);
+
+        rawObjects.forEach(row => {
+          const name = row['Buyer'] || row['Name'] || row['Customer'];
+          if (name) {
+            buyers.push({
+              name: String(name).trim(),
+              phone: String(row['Phone'] || row['Mobile'] || '').trim(),
+              member: String(row['Team Member'] || row['Team'] || 'Unassigned').trim(),
+              source: String(row['Source'] || leadSources[0]).trim(),
+              status: String(row['Temperature'] || row['Status'] || 'Warm').trim(),
+              stage: String(row['Stage'] || stages[0]).trim(),
+              followUpDate: String(row['FollowUp Date'] || '').trim(),
+              followUpTime: String(row['FollowUp Time'] || '').trim(),
+              notes: String(row['Notes'] || '').trim(),
+              lastContacted: ''
+            });
+          }
+        });
+        persistData();
+        alert(`✅ Buyers imported successfully!`);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>
