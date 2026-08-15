@@ -395,6 +395,605 @@
         justify-content: flex-end;
       }
     }
+
+/* =========================================================
+   MODERN ANDROID MOBILE THEME
+   Desktop functionality preserved; mobile gets a native-app feel.
+   ========================================================= */
+
+/* Global visual refresh */
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --success: #059669;
+  --success-hover: #047857;
+  --teal: #0f766e;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --bg: #f4f7fb;
+  --card-bg: #ffffff;
+  --text: #172033;
+  --text-muted: #64748b;
+  --border: #e5eaf1;
+  --radius: 16px;
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, .05);
+  --shadow: 0 8px 24px rgba(15, 23, 42, .07);
+}
+
+body {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(37,99,235,.06), transparent 30%),
+    var(--bg);
+  color: var(--text);
+}
+
+/* Modern app header */
+header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+  padding: 18px 20px;
+  box-shadow: 0 5px 22px rgba(15,23,42,.18);
+}
+
+header h2 {
+  font-size: 1.2rem;
+  letter-spacing: -.2px;
+}
+
+/* Cards */
+.card {
+  border: 1px solid rgba(226,232,240,.9);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.card h3 {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Inputs */
+input, select, textarea {
+  border-radius: 11px;
+  border-color: #dbe2ea;
+  background: #fbfcfe;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(37,99,235,.10);
+}
+
+/* Buttons */
+button {
+  border-radius: 11px;
+}
+
+.btn-save {
+  background: linear-gradient(135deg,#059669,#10b981);
+}
+
+.btn-manage {
+  background: linear-gradient(135deg,#1d4ed8,#2563eb);
+}
+
+.btn-import {
+  background: linear-gradient(135deg,#0f766e,#14b8a6);
+}
+
+/* Bottom navigation */
+.tab-nav {
+  background: rgba(255,255,255,.96);
+  border-top: 1px solid #e6ebf2;
+  box-shadow: 0 -8px 28px rgba(15,23,42,.09);
+}
+
+.tab-btn.active {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+/* Mobile-only native-app styling */
+@media screen and (max-width: 600px) {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f4f7fb;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    min-height: 62px;
+    padding: 13px 16px;
+    border-radius: 0 0 18px 18px;
+  }
+
+  header h2 {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .tab-content {
+    padding: 10px 10px 18px;
+  }
+
+  .card {
+    padding: 14px;
+    margin-bottom: 11px;
+    border-radius: 17px;
+    box-shadow: 0 4px 16px rgba(15,23,42,.055);
+  }
+
+  .card h3 {
+    font-size: .88rem;
+    font-weight: 700;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+
+  /* Dashboard */
+  #tab-directory > .card:first-child {
+    padding: 9px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  #tab-directory > .card:first-child > div {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 8px !important;
+  }
+
+  #tab-directory > .card:first-child > div > div {
+    background: #fff !important;
+    border: 1px solid #e7edf5 !important;
+    border-radius: 15px !important;
+    padding: 12px 8px !important;
+    box-shadow: 0 3px 12px rgba(15,23,42,.05);
+  }
+
+  #tab-directory > .card:first-child > div > div > div:first-child {
+    font-size: .58rem !important;
+    letter-spacing: .25px;
+    line-height: 1.3;
+  }
+
+  #tab-directory > .card:first-child > div > div > div:last-child {
+    font-size: 1.3rem !important;
+    margin-top: 4px;
+  }
+
+  /* Filters */
+  .grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  label {
+    font-size: .67rem;
+    letter-spacing: .35px;
+  }
+
+  input, select, textarea {
+    min-height: 45px;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  /* Filter action row */
+  #tab-directory .card:nth-of-type(2) > div:last-child {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px !important;
+  }
+
+  #tab-directory .card:nth-of-type(2) > div:last-child > div:last-child {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px !important;
+  }
+
+  /* Buyer cards */
+  .table-responsive {
+    border: 0;
+    overflow: visible;
+  }
+
+  .table-responsive tr {
+    background: #fff;
+    border: 1px solid #e4eaf2;
+    border-radius: 17px;
+    padding: 13px;
+    margin-bottom: 11px;
+    box-shadow: 0 4px 15px rgba(15,23,42,.055);
+  }
+
+  .table-responsive td {
+    padding: 6px 0;
+    min-height: 31px;
+    border: 0;
+    gap: 8px;
+  }
+
+  .table-responsive td::before {
+    flex: 0 0 32%;
+    max-width: 32%;
+    font-size: .62rem;
+    color: #7b8798;
+  }
+
+  .table-responsive td[data-label="Buyer"] {
+    display: block;
+    font-size: 1.04rem;
+    color: #172033;
+    padding: 2px 0 11px;
+    border-bottom: 1px solid #edf1f5;
+  }
+
+  .table-responsive td[data-label="Buyer"]::before {
+    display: none;
+  }
+
+  .table-responsive td[data-label="Buyer"] strong {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .table-responsive td[data-label="Actions"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    border-top: 1px solid #edf1f5;
+    margin-top: 7px;
+    padding-top: 10px;
+  }
+
+  .table-responsive td[data-label="Actions"]::before {
+    display: none;
+  }
+
+  .btn-edit, .btn-danger {
+    width: 100%;
+    min-height: 41px;
+    margin: 0;
+    border-radius: 10px;
+  }
+
+  .badge {
+    padding: 5px 9px;
+  }
+
+  .source-tag {
+    padding: 5px 8px;
+  }
+
+  /* Forms */
+  #buyerForm > div:last-child,
+  #teamForm > div:last-child,
+  #tab-team details form > div:last-child {
+    display: grid !important;
+    grid-template-columns: 1fr auto;
+    gap: 8px !important;
+  }
+
+  #buyerForm > div:last-child button,
+  #teamForm > div:last-child button,
+  #tab-team details form > div:last-child button {
+    width: 100% !important;
+    min-height: 46px;
+  }
+
+  /* Team list */
+  .list-item-row {
+    border-radius: 12px;
+    padding: 11px 12px;
+  }
+
+  /* Import area */
+  #tab-import .card > div[style*="display: flex"] {
+    flex-direction: column !important;
+  }
+
+  #tab-import button,
+  #tab-import .btn-import {
+    width: 100% !important;
+    min-height: 46px;
+  }
+
+  /* Android bottom navigation */
+  .tab-nav {
+    padding: 5px 4px calc(5px + env(safe-area-inset-bottom));
+    min-height: 68px;
+    gap: 2px;
+  }
+
+  .tab-btn {
+    min-height: 57px;
+    border-radius: 13px;
+    padding: 6px 2px;
+    font-size: .60rem;
+    gap: 3px;
+  }
+
+  .tab-btn .icon {
+    font-size: 1.22rem;
+  }
+
+  .tab-btn.active {
+    box-shadow: inset 0 0 0 1px rgba(37,99,235,.06);
+  }
+
+  /* Pagination */
+  .pagination-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .pagination-controls {
+    display: grid;
+    grid-template-columns: auto 1fr 40px 58px 40px;
+    gap: 5px;
+  }
+
+  .pagination-controls select {
+    min-height: 40px;
+    font-size: 14px !important;
+  }
+
+  /* Touch feedback */
+  button:active,
+  .tab-btn:active,
+  .contact-link:active,
+  .wa-link:active {
+    transform: scale(.97);
+  }
+}
+
+@media screen and (max-width: 380px) {
+  .tab-btn {
+    font-size: .55rem;
+  }
+
+  .tab-btn .icon {
+    font-size: 1.08rem;
+  }
+
+  .card {
+    padding: 12px;
+  }
+}
+
+
+/* =========================================================
+   CHIC ANDROID APP UI — DIRECTORY REDESIGN
+   More breathing room, premium color accents, cleaner cards.
+   ========================================================= */
+
+:root {
+  --primary: #5b5ce2;
+  --primary-hover: #4849c9;
+  --success: #18a878;
+  --success-hover: #12845e;
+  --teal: #159f9a;
+  --danger: #e25563;
+  --danger-hover: #c83f4d;
+  --bg: #f6f7fb;
+  --card-bg: #ffffff;
+  --text: #20243a;
+  --text-muted: #727891;
+  --border: #e8eaf2;
+  --radius: 18px;
+  --shadow-sm: 0 3px 12px rgba(42, 47, 85, .055);
+  --shadow: 0 8px 28px rgba(42, 47, 85, .075);
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% -5%, rgba(91,92,226,.10), transparent 30%),
+    radial-gradient(circle at 100% 18%, rgba(21,159,154,.07), transparent 25%),
+    var(--bg);
+}
+
+header {
+  background: linear-gradient(135deg, #292b63 0%, #5556c9 58%, #6768df 100%);
+}
+
+/* Directory gets generous spacing */
+@media screen and (max-width: 600px) {
+
+  #tab-directory {
+    padding: 12px 12px 22px;
+  }
+
+  /* KPI dashboard: airy 2x2 tiles */
+  #tab-directory > .card:first-child {
+    padding: 4px 2px 12px;
+    margin-bottom: 4px;
+  }
+
+  #tab-directory > .card:first-child > div {
+    gap: 10px !important;
+  }
+
+  #tab-directory > .card:first-child > div > div {
+    min-height: 82px;
+    padding: 13px 10px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 18px !important;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #tab-directory > .card:first-child > div > div::after {
+    content: "";
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    right: -10px;
+    top: -10px;
+    background: rgba(91,92,226,.08);
+  }
+
+  #tab-directory > .card:first-child > div > div:nth-child(2)::after {
+    background: rgba(226,85,99,.09);
+  }
+
+  #tab-directory > .card:first-child > div > div:nth-child(3)::after {
+    background: rgba(21,159,154,.10);
+  }
+
+  #tab-directory > .card:first-child > div > div:nth-child(4)::after {
+    background: rgba(24,168,120,.10);
+  }
+
+  /* Filter card */
+  #tab-directory > .card:nth-of-type(2) {
+    padding: 16px;
+    margin-bottom: 13px;
+  }
+
+  #tab-directory > .card:nth-of-type(2) h3 {
+    font-size: .92rem;
+    color: #303451;
+  }
+
+  #tab-directory > .card:nth-of-type(2) .grid {
+    gap: 12px;
+  }
+
+  /* Search box gets visual priority */
+  #searchKeyword {
+    border-color: #cfd2f4;
+    background: #fafaff;
+  }
+
+  /* Action buttons breathe */
+  #tab-directory .card:nth-of-type(2) > div:last-child > div:last-child {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px !important;
+  }
+
+  #tab-directory .card:nth-of-type(2) .btn-small {
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: .70rem;
+  }
+
+  /* Results card */
+  #tab-directory > .card:nth-of-type(3) {
+    padding: 9px;
+    border-radius: 18px;
+  }
+
+  /* Buyer cards: significantly more breathing room */
+  #tab-directory .table-responsive tr {
+    padding: 15px;
+    margin-bottom: 13px;
+    border-radius: 18px;
+    box-shadow: 0 5px 18px rgba(42,47,85,.065);
+  }
+
+  #tab-directory .table-responsive td {
+    padding: 7px 0;
+    min-height: 34px;
+  }
+
+  #tab-directory .table-responsive td::before {
+    flex-basis: 31%;
+    max-width: 31%;
+    font-size: .61rem;
+    letter-spacing: .3px;
+  }
+
+  #tab-directory .table-responsive td[data-label="Buyer"] {
+    padding: 2px 0 12px;
+    margin-bottom: 3px;
+    font-size: 1.08rem;
+    line-height: 1.35;
+  }
+
+  #tab-directory .table-responsive td[data-label="Phone & Connect"] {
+    padding-top: 8px;
+  }
+
+  /* Color-coded status/source/stage feel more app-like */
+  #tab-directory .badge {
+    border-radius: 9px;
+    padding: 6px 10px;
+    font-size: .66rem;
+  }
+
+  #tab-directory .source-tag {
+    border-radius: 9px;
+    padding: 6px 9px;
+    font-size: .67rem;
+  }
+
+  /* Contact controls */
+  #tab-directory .contact-link,
+  #tab-directory .wa-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: #f0f2ff;
+    margin-right: 5px;
+    font-size: 1rem !important;
+  }
+
+  #tab-directory .wa-link {
+    background: #e9f8f1;
+  }
+
+  /* Action buttons */
+  #tab-directory .table-responsive td[data-label="Actions"] {
+    margin-top: 9px;
+    padding-top: 12px;
+    gap: 10px;
+  }
+
+  #tab-directory .btn-edit,
+  #tab-directory .btn-danger {
+    min-height: 43px;
+    border-radius: 11px;
+    font-size: .72rem;
+  }
+
+  /* Pagination has its own breathing room */
+  #tab-directory .pagination-container {
+    padding: 8px 4px 2px;
+    gap: 11px;
+  }
+
+  #tab-directory .pagination-controls {
+    gap: 7px;
+  }
+}
+
+@media screen and (max-width: 380px) {
+  #tab-directory {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+
+  #tab-directory .table-responsive tr {
+    padding: 13px;
+  }
+
+  #tab-directory .table-responsive td::before {
+    flex-basis: 29%;
+    max-width: 29%;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -560,8 +1159,10 @@
             <select id="assignedMember"></select>
           </div>
           <div>
-            <label for="leadSource">Lead Source *</label>
-            <select id="leadSource" required></select>
+            <label for="leadSource">Lead Source </label>
+            <select id="leadSource">
+				<option value="">-- Select Source (Optional) --</option>
+			</select>
           </div>
           <div>
             <label for="leadStatus">Temperature</label>
@@ -697,7 +1298,7 @@
       </details>
     </div>
 
-  </div> <!-- ✅ CORRECTED: Properly closed tab-team container div here -->
+  </div>
 
   <!-- TAB 4: BULK IMPORT & SYNC -->
   <div id="tab-import" class="tab-content">
@@ -798,18 +1399,31 @@
 
     function getDefaultTeam() {
       return [
-        { name: 'Sashi Nair', phone: '9876543210', designation: 'DVP' },
-        { name: 'Gogul', phone: '9841414448', designation: 'TIA' },
-        { name: 'Rajesh Sharma', phone: '9876543212', designation: 'Sales Manager' },
-        { name: 'Prasanna KB', phone: '9500058986', designation: 'TIA' },
-        { name: 'KG', phone: '9841414448', designation: 'TIA' },
-        { name: 'Meena Sasi', phone: '9710212480', designation: 'TIA' }
+        { name: 'Sashi Nair', phone: '6374619551', designation: 'DVP' },
+        { name: 'Ramesh AK', phone: '9500087655', designation: 'BDM' },
+        { name: 'Sudhagar', phone: '9445962984', designation: 'SM' },
+        { name: 'Gogul', phone: '9841414448', designation: 'CP' }
       ];
     }
 
     function getDefaultSources() {
-      return ['Referral', 'Facebook', 'Instagram', 'Poster', 'Direct', 'Google Search', 'Whatsapp', 'Workindia', 'self', 'WI'];
+      return ['Referral', 'FB', 'Insta', 'Poster', 'Direct', 'Google', 'Whatsapp', 'self', 'WI'];
     }
+
+    // Search input Enter key handler
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('searchKeyword');
+      if (searchInput) {
+        searchInput.addEventListener('keydown', function(event) {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            renderTable();
+            this.value = '';
+            renderTable();
+          }
+        });
+      }
+    });
 
     function getDefaultStages() {
       return ['New Lead', 'Site Visit Scheduled', 'Negotiation', 'Closed / Won', 'Not Responding', 'Not Interested', 'Out of Coverage'];
@@ -1102,16 +1716,57 @@
       }
     }
 
+    function editBuyer(originalIndex) {
+      const buyer = buyers[originalIndex];
+      if (!buyer) return;
+
+      document.getElementById('editBuyerIndex').value = originalIndex;
+      document.getElementById('buyerName').value = buyer.name || '';
+      document.getElementById('buyerFirstContactDate').value = buyer.firstContactDate || '';
+      document.getElementById('buyerPhone').value = buyer.phone || '';
+      document.getElementById('assignedMember').value = buyer.member || '';
+      document.getElementById('leadSource').value = buyer.source || '';
+      document.getElementById('leadStatus').value = buyer.status || 'Warm';
+      document.getElementById('lifecycleStage').value = buyer.stage || '';
+      document.getElementById('followUpDate').value = buyer.followUpDate || '';
+      document.getElementById('followUpTime').value = buyer.followUpTime || '';
+      document.getElementById('buyerNotes').value = buyer.notes || '';
+
+      document.getElementById('buyerFormHeading').innerText = '✏️ Edit Buyer Record';
+      document.getElementById('saveBuyerBtn').innerText = 'UPDATE BUYER RECORD';
+      document.getElementById('cancelBuyerEditBtn').style.display = 'inline-block';
+
+      switchTab('tab-add-buyer');
+    }
+
+    function deleteBuyer(originalIndex) {
+      if (confirm('Are you sure you want to delete this buyer record?')) {
+        buyers.splice(originalIndex, 1);
+        persistData();
+        renderTable();
+      }
+    }
+
     function saveBuyer() {
       const index = parseInt(document.getElementById('editBuyerIndex').value, 10);
       const name = document.getElementById('buyerName').value.trim();
+      const phone = document.getElementById('buyerPhone').value.trim();
       if (!name) return;
+
+      if (phone) {
+        const duplicateIndex = buyers.findIndex((b, idx) => b.phone === phone && idx !== index);
+        if (duplicateIndex !== -1) {
+          alert(`⚠️ Duplicate Error: Phone number "${phone}" is already registered to "${buyers[duplicateIndex].name}".`);
+          return;
+        }
+      }
 
       const existingRecord = index >= 0 ? buyers[index] : {};
 
       const buyerRecord = {
         name: name,
-        phone: document.getElementById('buyerPhone').value.trim(),
+        firstContactDate: document.getElementById('buyerFirstContactDate').value,
+        phone: phone,
         member: document.getElementById('assignedMember').value || 'Unassigned',
         source: document.getElementById('leadSource').value,
         status: document.getElementById('leadStatus').value,
@@ -1129,37 +1784,9 @@
       }
 
       persistData();
+      document.getElementById('searchKeyword').value = '';
       resetBuyerForm();
       switchTab('tab-directory');
-    }
-
-    function editBuyer(index) {
-      const buyer = buyers[index];
-      if (!buyer) return;
-
-      document.getElementById('editBuyerIndex').value = index;
-      document.getElementById('buyerName').value = buyer.name;
-      document.getElementById('buyerPhone').value = buyer.phone || '';
-      document.getElementById('assignedMember').value = buyer.member || '';
-      document.getElementById('leadSource').value = buyer.source;
-      document.getElementById('leadStatus').value = buyer.status;
-      document.getElementById('lifecycleStage').value = buyer.stage;
-      document.getElementById('followUpDate').value = buyer.followUpDate || '';
-      document.getElementById('followUpTime').value = buyer.followUpTime || '';
-      document.getElementById('buyerNotes').value = buyer.notes || '';
-
-      document.getElementById('buyerFormHeading').innerText = '✏️ Edit Buyer Record';
-      document.getElementById('saveBuyerBtn').innerText = 'UPDATE BUYER RECORD';
-      document.getElementById('cancelBuyerEditBtn').style.display = 'inline-block';
-
-      switchTab('tab-add-buyer');
-    }
-
-    function deleteBuyer(index) {
-      if (confirm('Are you sure you want to delete this buyer record?')) {
-        buyers.splice(index, 1);
-        persistData();
-      }
     }
 
     function resetBuyerForm() {
@@ -1168,6 +1795,8 @@
       document.getElementById('buyerFormHeading').innerText = '📌 Buyer Information & Tracking';
       document.getElementById('saveBuyerBtn').innerText = 'SAVE BUYER RECORD';
       document.getElementById('cancelBuyerEditBtn').style.display = 'none';
+      document.getElementById('searchKeyword').value = '';
+      switchTab('tab-directory');
     }
 
     function sortTable(columnKey) {
