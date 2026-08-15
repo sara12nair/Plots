@@ -547,6 +547,10 @@
             <label for="buyerName">Buyer *</label>
             <input type="text" id="buyerName" required placeholder="Enter buyer name">
           </div>
+		<div>
+			<label for="buyerFirstContactDate">Date of First Contact</label>
+			<input type="date" id="buyerFirstContactDate">
+		</div>
           <div>
             <label for="buyerPhone">Phone</label>
             <input type="tel" id="buyerPhone" placeholder="Enter phone number">
@@ -594,6 +598,8 @@
 
   <!-- TAB 3: TEAM & SETUP MANAGEMENT -->
   <div id="tab-team" class="tab-content">
+    
+    <!-- 1. Team Member Management Form (Top for easy access) -->
     <div class="card">
       <h3 id="teamFormHeading">👥 Team Member Management</h3>
       <form id="teamForm" onsubmit="event.preventDefault(); saveTeamMember();">
@@ -601,55 +607,36 @@
         <div class="grid">
           <div>
             <label for="newMemberName">Member Name *</label>
-            <input type="text" id="newMemberName" placeholder="e.g. Rahul Verma" required>
+            <input type="text" id="newMemberName" placeholder="e.g. Rahul" required>
           </div>
           <div>
             <label for="newMemberPhone">Member Phone *</label>
             <input type="tel" id="newMemberPhone" placeholder="e.g. +91 9876543210" required>
           </div>
+			<div>
+			<label for="newMemberJoiningDate">Date of Joining</label>
+			<input type="date" id="newMemberJoiningDate">
+			</div>
           <div>
             <label for="newMemberDesignation">Designation *</label>
-            <input type="text" id="newMemberDesignation" placeholder="e.g. Sr. Sales Exec / DVP" required>
+            <select id="newMemberDesignation" required>
+              <option value="" disabled selected>Select Designation</option>
+              <option value="VP">VP</option>
+              <option value="DVP">DVP</option>
+              <option value="BDM">BDM</option>
+              <option value="SM">SM</option>
+              <option value="CP">CP</option>
+            </select>
           </div>
         </div>
-        <div style="display: flex; gap: 12px;">
+        <div style="display: flex; gap: 12px; margin-top: 12px;">
           <button type="submit" class="btn-manage" id="teamSubmitBtn" style="width: auto;">+ Add Team Member</button>
           <button type="button" id="cancelTeamEditBtn" onclick="resetTeamForm()" style="background:#64748b; color:white; display:none; width: auto;">Cancel Edit</button>
         </div>
       </form>
     </div>
 
-    <div class="card">
-      <h3>🔄 Manage Stages</h3>
-      <form onsubmit="event.preventDefault(); saveStage();">
-        <input type="hidden" id="editStageIndex" value="-1">
-        <div class="grid">
-          <div>
-            <label for="stageInput">Stage Name</label>
-            <input type="text" id="stageInput" placeholder="e.g. Out of Coverage" required>
-          </div>
-        </div>
-        <div style="display: flex; gap: 10px; margin-top: 8px;">
-          <button type="submit" class="btn-manage" id="stageSubmitBtn" style="width: auto;">+ Add Stage</button>
-          <button type="button" id="cancelStageEditBtn" onclick="resetStageForm()" style="background:#64748b; color:white; display:none; width: auto;">Cancel</button>
-        </div>
-      </form>
-      <div id="stageListContainer" style="margin-top: 16px;"></div>
-    </div>
-
-    <div class="card">
-      <h3>➕ Add Lead Source</h3>
-      <form onsubmit="event.preventDefault(); addSource();">
-        <div class="grid">
-          <div>
-            <label for="newSource">Source Name</label>
-            <input type="text" id="newSource" placeholder="e.g. LinkedIn Ads" required>
-          </div>
-        </div>
-        <button type="submit" class="btn-manage" style="margin-top: 8px; width: auto;">+ Add Source</button>
-      </form>
-    </div>
-
+    <!-- 2. Team Directory -->
     <div class="card">
       <h3>📋 Team Directory</h3>
       <div class="table-responsive">
@@ -666,7 +653,49 @@
         </table>
       </div>
     </div>
-  </div>
+
+  <!-- 3. Advanced Setup & Configuration (Collapsed by default) -->
+    <div class="card" style="margin-top: 30px; border-top: 3px solid var(--border);">
+      <details>
+        <summary style="cursor: pointer; font-weight: 700; color: var(--text-muted); font-size: 1rem; text-transform: uppercase;">
+          ⚙️ Advanced Setup & Configuration (Rarely Used)
+        </summary>
+        
+        <!-- Manage Stages -->
+        <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
+          <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">🔄 Manage Stages</h4>
+          <form onsubmit="event.preventDefault(); saveStage();">
+            <input type="hidden" id="editStageIndex" value="-1">
+            <div class="grid">
+              <div>
+                <label for="stageInput">Stage Name</label>
+                <input type="text" id="stageInput" placeholder="e.g. Out of Coverage" required>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <button type="submit" class="btn-manage" id="stageSubmitBtn" style="width: auto;">+ Add Stage</button>
+              <button type="button" id="cancelStageEditBtn" onclick="resetStageForm()" style="background:#64748b; color:white; display:none; width: auto;">Cancel</button>
+            </div>
+          </form>
+          <div id="stageListContainer" style="margin-top: 16px;"></div>
+        </div>
+
+        <!-- Add Lead Source -->
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
+          <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">➕ Add Lead Source</h4>
+          <form onsubmit="event.preventDefault(); addSource();">
+            <div class="grid">
+              <div>
+                <label for="newSource">Source Name</label>
+                <input type="text" id="newSource" placeholder="e.g. LinkedIn Ads" required>
+              </div>
+            </div>
+            <button type="submit" class="btn-manage" style="margin-top: 8px; width: auto;">+ Add Source</button>
+          </form>
+        </div>
+
+      </details>
+    </div>
 
   <!-- TAB 4: BULK IMPORT & SYNC -->
   <div id="tab-import" class="tab-content">
@@ -976,25 +1005,67 @@
           </td>
         </tr>
       `).join('');
+	  updateDesignationAvailability();
+    }
+	
+	
+	function updateDesignationAvailability() {
+      const designationSelect = document.getElementById('newMemberDesignation');
+      if (!designationSelect) return;
+
+      const hasVP = teamMembers.some(m => m.designation === 'VP');
+      const hasDVP = teamMembers.some(m => m.designation === 'DVP');
+
+      for (let option of designationSelect.options) {
+        if (option.value === 'VP') {
+          option.disabled = hasVP;
+          option.text = hasVP ? 'VP (Already Assigned)' : 'VP';
+        }
+        if (option.value === 'DVP') {
+          option.disabled = hasDVP;
+          option.text = hasDVP ? 'DVP (Already Assigned)' : 'DVP';
+        }
+      }
     }
 
     function saveTeamMember() {
-      const index = parseInt(document.getElementById('editTeamIndex').value, 10);
-      const name = document.getElementById('newMemberName').value.trim();
-      const phone = document.getElementById('newMemberPhone').value.trim();
-      const designation = document.getElementById('newMemberDesignation').value.trim();
+  const index = parseInt(document.getElementById('editTeamIndex').value, 10);
+  const name = document.getElementById('newMemberName').value.trim();
+  const phone = document.getElementById('newMemberPhone').value.trim();
+  const designation = document.getElementById('newMemberDesignation').value;
 
-      if (!name || !phone || !designation) return;
+  if (!name || !phone || !designation) {
+    alert("Please fill in all required fields.");
+    return;
+  }
 
-      if (index >= 0) {
-        teamMembers[index] = { name, phone, designation };
-      } else {
-        teamMembers.push({ name, phone, designation });
-      }
+  // 1. Enforce allowed designations list
+  const allowedDesignations = ['VP', 'DVP', 'BDM', 'SM', 'CP'];
+  if (!allowedDesignations.includes(designation)) {
+    alert("Invalid designation selected.");
+    return;
+  }
 
-      persistData();
-      resetTeamForm();
+  // 2. Enforce "Only 1 person each" rule for VP and DVP
+  if (designation === 'VP' || designation === 'DVP') {
+    // Check if another member already holds this role (ignoring the current record if we are editing it)
+    const existingHolder = teamMembers.find((m, idx) => m.designation === designation && idx !== index);
+    
+    if (existingHolder) {
+      alert(`Restriction Error: ${designation} role is already assigned to ${existingHolder.name}. Only one person is allowed for this designation.`);
+      return;
     }
+  }
+
+  if (index >= 0) {
+    teamMembers[index] = { name, phone, designation };
+  } else {
+    teamMembers.push({ name, phone, designation });
+  }
+
+  persistData();
+  resetTeamForm();
+}
 
     function editTeamMember(index) {
       const member = teamMembers[index];
@@ -1208,7 +1279,7 @@
         return;
       }
 	  // Paste these lines inside renderTable() to update the KPI counts live:
-      document.getElementById('kpiTotal').innerText = totalRecords;
+      document.getElementById('kpiTotal').innerText = filtered.length;
       document.getElementById('kpiHot').innerText = filtered.filter(b => b.status === 'Hot').length;
       document.getElementById('kpiVisits').innerText = filtered.filter(b => b.stage === 'Site Visit Scheduled').length;
       document.getElementById('kpiWon').innerText = filtered.filter(b => b.stage === 'Closed / Won').length;
