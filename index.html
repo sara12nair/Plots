@@ -1379,14 +1379,26 @@ header {
     let buyers = [];
 
     // --- REALTIME SYNC LISTENER FROM FIREBASE ---
-    db.ref('teambuyers_crm').on('value', (snapshot) => {
+   db.ref('teambuyers_crm').on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
         teamMembers = data.teamMembers || getDefaultTeam();
         leadSources = data.leadSources || getDefaultSources();
         stages = data.stages || getDefaultStages();
         buyers = data.buyers || [];
+        
+        // Auto-migrate old stage names if needed
+        let migrated = false;
+        buyers.forEach(b => {
+          if (b.stage === 'Not Responding') {
+            b.stage = 'Line Busy';
+            migrated = true;
+          }
+        });
+        if (migrated) persistData();
+
       } else {
+	  
         teamMembers = getDefaultTeam();
         leadSources = getDefaultSources();
         stages = getDefaultStages();
@@ -1512,6 +1524,18 @@ header {
       if (newStatus === 'Not Interested' || newStatus === 'Not Responding') {
         buyer.stage = newStatus;
       }
+	  function quickUpdateStage(actualIndex, newStage) {
+      const buyer = buyers[actualIndex];
+      if (!buyer || !newStage) return;
+
+      buyer.stage = newStage;
+      const timestamp = getShortFormattedTimestamp();
+      const logEntry = `[${timestamp}]: Stage updated to ${newStage}`;
+      buyer.notes = buyer.notes ? `${buyer.notes}\n${logEntry}` : logEntry;
+
+      persistData();
+      renderTable();
+    }
 
       const timestamp = getShortFormattedTimestamp();
       const logEntry = `[${timestamp}]: Status flagged as ${newStatus}`;
@@ -1529,6 +1553,10 @@ header {
       const filterAgent = document.getElementById('filterAgent');
       const filterSource = document.getElementById('filterSource');
       const filterStage = document.getElementById('filterStage');
+	  
+	  const sortedTeam = [...teamMembers].sort((a, b) => a.name.localeCompare(b.name));
+      const sortedStages = [...stages].sort((a, b) => a.localeCompare(b));
+	  	  
 
       const memberOptions = '<option value="">Unassigned</option>' + teamMembers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
       const sourceOptions = leadSources.map(s => `<option value="${s}">${s}</option>`).join('');
@@ -1943,7 +1971,13 @@ header {
               </div>
             </td>
 
-            <td data-label="Stage">${b.stage}</td>
+            <td data-label="Stage">
+              <div style="font-weight: 600; margin-bottom: 4px;">${b.stage}</div>
+              <select onchange="quickUpdateStage(${actualIndex}, this.value)" style="font-size: 10px; padding: 2px; width: 100%;">
+                <option value="" disabled selected>Change Stage...</option>
+                ${stages.map(st => `<option value="${st}">${st}</option>`).join('')}
+              </select>
+            </td>
             <td data-label="Last Contacted"><span class="last-contacted-badge">${b.lastContacted || '-'}</span></td>
             <td data-label="Follow Up"><strong>${followUpString}</strong></td>
             
