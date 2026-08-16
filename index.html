@@ -2044,7 +2044,7 @@ header {
       reader.readAsArrayBuffer(file);
     }
 
-    function importBuyerFile() {
+   function importBuyerFile() {
       const fileInput = document.getElementById('buyerFileInput');
       const file = fileInput.files[0];
       if (!file) return;
@@ -2060,7 +2060,8 @@ header {
           return;
         }
 
-        buyers = [];
+        let addedCount = 0;
+        let updatedCount = 0;
 
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i];
@@ -2069,9 +2070,18 @@ header {
           const name = r[0] ? String(r[0]).trim() : '';
           if (!name) continue;
 
-          buyers.push({
+          const phone = r[1] ? String(r[1]).trim() : '';
+          const cleanImportPhone = phone.replace(/[^0-9]/g, '');
+
+          // Check if a buyer with this phone number already exists
+          const existingIndex = buyers.findIndex(b => {
+            const cleanExistingPhone = (b.phone || '').replace(/[^0-9]/g, '');
+            return cleanImportPhone && cleanExistingPhone && cleanImportPhone === cleanExistingPhone;
+          });
+
+          const buyerData = {
             name: name,
-            phone: r[1] ? String(r[1]).trim() : '',
+            phone: phone,
             member: r[2] ? String(r[2]).trim() : 'Unassigned',
             source: r[3] ? String(r[3]).trim() : 'Referral',
             status: r[4] ? String(r[4]).trim() : 'Warm',
@@ -2079,12 +2089,23 @@ header {
             followUpDate: r[6] ? String(r[6]).trim() : '',
             followUpTime: r[7] ? String(r[7]).trim() : '',
             notes: r[8] ? String(r[8]).trim() : '',
-            lastContacted: ''
-          });
+            firstContactDate: r[9] ? String(r[9]).trim() : '',
+            lastContacted: existingIndex >= 0 ? buyers[existingIndex].lastContacted || '' : ''
+          };
+
+          if (existingIndex >= 0) {
+            // Update existing record safely without duplicating
+            buyers[existingIndex] = { ...buyers[existingIndex], ...buyerData };
+            updatedCount++;
+          } else {
+            // Add new record
+            buyers.push(buyerData);
+            addedCount++;
+          }
         }
 
         persistData();
-        alert(`✅ Success: Imported ${buyers.length} records by column position!`);
+        alert(`✅ Import Complete!\n• Added: ${addedCount} new records\n• Updated: ${updatedCount} existing records (no duplicates created)`);
         switchTab('tab-directory');
       };
       reader.readAsArrayBuffer(file);
