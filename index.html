@@ -1538,7 +1538,7 @@ header {
       if (sourceSelect) sourceSelect.innerHTML = sourceOptions;
       if (stageSelect) stageSelect.innerHTML = stageOptions;
 
-      if (filterAgent) filterAgent.innerHTML = '<option value="ALL">All Team Members</option>' + teamMembers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+     if (filterAgent) filterAgent.innerHTML = '<option value="ALL">All Team Members</option><option value="Unassigned">Unassigned</option>' + teamMembers.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
       if (filterSource) filterSource.innerHTML = '<option value="ALL">All Sources</option>' + sourceOptions;
       if (filterStage) filterStage.innerHTML = '<option value="ALL">All Stages</option>' + stageOptions;
 
@@ -1894,6 +1894,12 @@ header {
       const endIdx = Math.min(startIdx + rowsPerPage, totalRecords);
       const pageSlice = filtered.slice(startIdx, endIdx);
 
+      // Update KPIs based on the final filtered results first
+      document.getElementById('kpiTotal').innerText = filtered.length;
+      document.getElementById('kpiHot').innerText = filtered.filter(b => b.status === 'Hot').length;
+      document.getElementById('kpiVisits').innerText = filtered.filter(b => b.stage === 'Site Visit Scheduled').length;
+      document.getElementById('kpiWon').innerText = filtered.filter(b => b.stage === 'Closed / Won').length;
+
       document.getElementById('totalRecords').innerText = totalRecords;
       document.getElementById('pageStart').innerText = totalRecords === 0 ? 0 : startIdx + 1;
       document.getElementById('pageEnd').innerText = endIdx;
@@ -1903,11 +1909,6 @@ header {
         tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#888; padding: 24px;">No matching records found.</td></tr>`;
         return;
       }
-
-      document.getElementById('kpiTotal').innerText = filtered.length;
-      document.getElementById('kpiHot').innerText = filtered.filter(b => b.status === 'Hot').length;
-      document.getElementById('kpiVisits').innerText = filtered.filter(b => b.stage === 'Site Visit Scheduled').length;
-      document.getElementById('kpiWon').innerText = filtered.filter(b => b.stage === 'Closed / Won').length;
 
       tbody.innerHTML = pageSlice.map(b => {
         const actualIndex = b.originalIndex;
@@ -2060,6 +2061,28 @@ header {
           return;
         }
 
+        // Map header columns dynamically to prevent wrong placement
+        const headers = rows[0].map(h => String(h || '').trim().toLowerCase());
+        const getColIdx = (possibleNames) => {
+          return headers.findIndex(h => possibleNames.some(name => h.includes(name)));
+        };
+
+        const idxName = getColIdx(['buyer', 'name']);
+        const idxPhone = getColIdx(['phone', 'mobile', 'contact']);
+        const idxMember = getColIdx(['team', 'member', 'agent']);
+        const idxSource = getColIdx(['source']);
+        const idxStatus = getColIdx(['status', 'temperature']);
+        const idxStage = getColIdx(['stage']);
+        const idxFollowUpDate = getColIdx(['followup', 'date']);
+        const idxFollowUpTime = getColIdx(['time']);
+        const idxNotes = getColIdx(['note']);
+        const idxFirstContact = getColIdx(['first contact']);
+
+        if (idxName === -1) {
+          alert("❌ Error: Could not find a 'Buyer' or 'Name' column in your uploaded file.");
+          return;
+        }
+
         let addedCount = 0;
         let updatedCount = 0;
 
@@ -2067,13 +2090,12 @@ header {
           const r = rows[i];
           if (!r || r.length === 0) continue;
 
-          const name = r[0] ? String(r[0]).trim() : '';
+          const name = idxName !== -1 && r[idxName] ? String(r[idxName]).trim() : '';
           if (!name) continue;
 
-          const phone = r[1] ? String(r[1]).trim() : '';
+          const phone = idxPhone !== -1 && r[idxPhone] ? String(r[idxPhone]).trim() : '';
           const cleanImportPhone = phone.replace(/[^0-9]/g, '');
 
-          // Check if a buyer with this phone number already exists
           const existingIndex = buyers.findIndex(b => {
             const cleanExistingPhone = (b.phone || '').replace(/[^0-9]/g, '');
             return cleanImportPhone && cleanExistingPhone && cleanImportPhone === cleanExistingPhone;
@@ -2082,23 +2104,21 @@ header {
           const buyerData = {
             name: name,
             phone: phone,
-            member: r[2] ? String(r[2]).trim() : 'Unassigned',
-            source: r[3] ? String(r[3]).trim() : 'Referral',
-            status: r[4] ? String(r[4]).trim() : 'Warm',
-            stage: r[5] ? String(r[5]).trim() : 'New Lead',
-            followUpDate: r[6] ? String(r[6]).trim() : '',
-            followUpTime: r[7] ? String(r[7]).trim() : '',
-            notes: r[8] ? String(r[8]).trim() : '',
-            firstContactDate: r[9] ? String(r[9]).trim() : '',
+            member: idxMember !== -1 && r[idxMember] ? String(r[idxMember]).trim() : 'Unassigned',
+            source: idxSource !== -1 && r[idxSource] ? String(r[idxSource]).trim() : 'Referral',
+            status: idxStatus !== -1 && r[idxStatus] ? String(r[idxStatus]).trim() : 'Warm',
+            stage: idxStage !== -1 && r[idxStage] ? String(r[idxStage]).trim() : 'New Lead',
+            followUpDate: idxFollowUpDate !== -1 && r[idxFollowUpDate] ? String(r[idxFollowUpDate]).trim() : '',
+            followUpTime: idxFollowUpTime !== -1 && r[idxFollowUpTime] ? String(r[idxFollowUpTime]).trim() : '',
+            notes: idxNotes !== -1 && r[idxNotes] ? String(r[idxNotes]).trim() : '',
+            firstContactDate: idxFirstContact !== -1 && r[idxFirstContact] ? String(r[idxFirstContact]).trim() : '',
             lastContacted: existingIndex >= 0 ? buyers[existingIndex].lastContacted || '' : ''
           };
 
           if (existingIndex >= 0) {
-            // Update existing record safely without duplicating
             buyers[existingIndex] = { ...buyers[existingIndex], ...buyerData };
             updatedCount++;
           } else {
-            // Add new record
             buyers.push(buyerData);
             addedCount++;
           }
