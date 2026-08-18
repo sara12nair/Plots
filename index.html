@@ -8,6 +8,10 @@
   <!-- SHEETJS LIBRARY FOR DIRECT EXCEL (.XLSX / .XLS) PARSING & EXPORT -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+  <!-- jsPDF + AutoTable FOR PRINTABLE FOLLOW-UP CALL SHEET (PDF) EXPORT -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
   <!-- FIREBASE SDKs (Realtime Cloud Sync) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -198,6 +202,18 @@
     .btn-danger { background-color: var(--danger); color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; width: auto; box-shadow: none; }
     .btn-danger:hover { background-color: var(--danger-hover); }
     .btn-small { padding: 8px 12px; font-size: 0.75rem; width: auto; border-radius: 6px; }
+    .btn-auto { width: auto; }
+    .btn-cancel { background: #64748b; color: white; display: none; width: auto; }
+    .btn-page { background: var(--primary); color: white; }
+    .btn-teal { background: #0d9488; color: white; }
+
+    .kpi-box { background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
+    .kpi-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+    .section-subheading { font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); }
+    .file-input { margin-bottom: 10px; }
+    .stat-value { font-weight: 600; color: var(--text); }
+    .nowrap { white-space: nowrap; }
+    .mini-select { font-size: 10px; padding: 2px; width: 100%; }
 
     .table-responsive {
       overflow-x: auto;
@@ -1028,20 +1044,20 @@ header {
     <!-- Value-Added KPI Summary Header -->
     <div class="card" style="padding: 14px 18px; margin-bottom: 16px;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; text-align: center;">
-        <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
-          <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Total Active Leads</div>
+        <div class="kpi-box">
+          <div class="kpi-label">Total Active Leads</div>
           <div id="kpiTotal" style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">0</div>
         </div>
-        <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
-          <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Hot Leads 🔥</div>
+        <div class="kpi-box">
+          <div class="kpi-label">Hot Leads 🔥</div>
           <div id="kpiHot" style="font-size: 1.1rem; font-weight: 700; color: #dc2626;">0</div>
         </div>
-        <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
-          <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Site Visits Scheduled</div>
+        <div class="kpi-box">
+          <div class="kpi-label">Site Visits Scheduled</div>
           <div id="kpiVisits" style="font-size: 1.1rem; font-weight: 700; color: var(--teal);">0</div>
         </div>
-        <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
-          <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Won / Incentive Eligible 🏆</div>
+        <div class="kpi-box">
+          <div class="kpi-label">Won / Incentive Eligible 🏆</div>
           <div id="kpiWon" style="font-size: 1.1rem; font-weight: 700; color: var(--success);">0</div>
         </div>
       </div>
@@ -1081,6 +1097,14 @@ header {
         </div>
       </div>
 
+      <div style="margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px;">
+        <button type="button" onclick="quickDateFilter('overdue')" class="btn-small" style="background:#ef4444; color:white;">⏰ Overdue</button>
+        <button type="button" onclick="quickDateFilter('today')" class="btn-small" style="background:#4f46e5; color:white;">📅 Today</button>
+        <button type="button" onclick="quickDateFilter('next3')" class="btn-small btn-teal">➡ Next 3 Days</button>
+        <button type="button" onclick="quickDateFilter('next7')" class="btn-small btn-teal">➡ Next 7 Days</button>
+        <button type="button" onclick="quickDateFilter('last7')" class="btn-small" style="background:#64748b; color:white;">⬅ Last 7 Days</button>
+      </div>
+
       <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <input type="checkbox" id="hideInactive" checked onchange="renderTable()" style="width: 16px; height: 16px; accent-color: var(--primary);">
@@ -1096,10 +1120,28 @@ header {
     </div>
 
     <div class="card">
+      <h3>📤 Follow-Up Call Sheet Export</h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -6px;">
+        Tick specific buyers in the table below, or leave nothing checked to export everything matching your current filters. Sorted by Team Member, then Follow Up Date — ready to hand off for calls or a team meeting.
+      </p>
+      <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <button type="button" onclick="selectAllFiltered()" class="btn-small" style="background:#0284c7; color:white;">☑ Select All Filtered</button>
+        <button type="button" onclick="clearSelection()" class="btn-small" style="background: #475569; color: white;">☐ Clear Selection</button>
+        <span style="font-size: 0.8rem; color: var(--text-muted); margin: 0 6px;"><strong id="selectedCount">0</strong> selected</span>
+        <span style="flex: 1;"></span>
+        <button type="button" onclick="exportFollowUpExcel()" class="btn-small" style="background: var(--success); color: white;">📊 Export Excel</button>
+        <button type="button" onclick="exportFollowUpPDF()" class="btn-small" style="background: var(--danger); color: white;">📄 Export PDF Call Sheet</button>
+        <button type="button" onclick="copyFollowUpText()" class="btn-small" style="background: #25D366; color: white;">📋 Copy for WhatsApp</button>
+        <button type="button" onclick="shareFollowUpWhatsApp()" class="btn-small" style="background: #128C7E; color: white;">📲 Share via WhatsApp</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="table-responsive">
         <table>
           <thead>
             <tr>
+              <th style="width: 34px;"><input type="checkbox" id="selectAllCheckbox" title="Select all on this page" onchange="toggleSelectAllOnPage(this.checked)" style="width: 16px; height: 16px; accent-color: var(--primary);"></th>
               <th onclick="sortTable('name')">Buyer <span id="sort-name" class="sort-icon">▲▼</span></th>
               <th>Phone & Connect</th>
               <th onclick="sortTable('member')">Team <span id="sort-member" class="sort-icon">▲▼</span></th>
@@ -1118,7 +1160,7 @@ header {
 
       <div class="pagination-container">
         <div style="font-size: 0.85rem; color: var(--text-muted);">
-          Showing <span id="pageStart" style="font-weight: 600; color: var(--text);">0</span> - <span id="pageEnd" style="font-weight: 600; color: var(--text);">0</span> of <span id="totalRecords" style="font-weight: 600; color: var(--text);">0</span> records
+          Showing <span id="pageStart" class="stat-value">0</span> - <span id="pageEnd" class="stat-value">0</span> of <span id="totalRecords" class="stat-value">0</span> records
         </div>
         <div class="pagination-controls">
           <label for="rowsPerPage" style="margin: 0; font-size: 0.75rem;">Per Page:</label>
@@ -1127,9 +1169,9 @@ header {
             <option value="50" selected>50</option>
             <option value="100">100</option>
           </select>
-          <button type="button" onclick="prevPage()" class="btn-small" style="background:var(--primary); color:white;">◀</button>
+          <button type="button" onclick="prevPage()" class="btn-small btn-page">◀</button>
           <span id="pageIndicator" style="font-size: 0.85rem; font-weight: 700; margin: 0 6px;">1 / 1</span>
-          <button type="button" onclick="nextPage()" class="btn-small" style="background:var(--primary); color:white;">▶</button>
+          <button type="button" onclick="nextPage()" class="btn-small btn-page">▶</button>
         </div>
       </div>
     </div>
@@ -1191,7 +1233,7 @@ header {
         </div>
         <div style="display: flex; gap: 12px;">
           <button type="submit" class="btn-save" id="saveBuyerBtn">SAVE BUYER RECORD</button>
-          <button type="button" id="cancelBuyerEditBtn" onclick="resetBuyerForm()" style="background:#64748b; color:white; display:none; width: auto;">Cancel Edit</button>
+          <button type="button" id="cancelBuyerEditBtn" onclick="resetBuyerForm()" class="btn-cancel">Cancel Edit</button>
         </div>
       </form>
     </div>
@@ -1231,8 +1273,8 @@ header {
           </div>
         </div>
         <div style="display: flex; gap: 12px; margin-top: 12px;">
-          <button type="submit" class="btn-manage" id="teamSubmitBtn" style="width: auto;">+ Add Team Member</button>
-          <button type="button" id="cancelTeamEditBtn" onclick="resetTeamForm()" style="background:#64748b; color:white; display:none; width: auto;">Cancel Edit</button>
+          <button type="submit" class="btn-manage btn-auto" id="teamSubmitBtn">+ Add Team Member</button>
+          <button type="button" id="cancelTeamEditBtn" onclick="resetTeamForm()" class="btn-cancel">Cancel Edit</button>
         </div>
       </form>
     </div>
@@ -1264,7 +1306,7 @@ header {
         
         <!-- Manage Stages -->
         <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
-          <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">🔄 Manage Stages</h4>
+          <h4 class="section-subheading">🔄 Manage Stages</h4>
           <form onsubmit="event.preventDefault(); saveStage();">
             <input type="hidden" id="editStageIndex" value="-1">
             <div class="grid">
@@ -1274,8 +1316,8 @@ header {
               </div>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 8px;">
-              <button type="submit" class="btn-manage" id="stageSubmitBtn" style="width: auto;">+ Add Stage</button>
-              <button type="button" id="cancelStageEditBtn" onclick="resetStageForm()" style="background:#64748b; color:white; display:none; width: auto;">Cancel</button>
+              <button type="submit" class="btn-manage btn-auto" id="stageSubmitBtn">+ Add Stage</button>
+              <button type="button" id="cancelStageEditBtn" onclick="resetStageForm()" class="btn-cancel">Cancel</button>
             </div>
           </form>
           <div id="stageListContainer" style="margin-top: 16px;"></div>
@@ -1283,7 +1325,7 @@ header {
 
         <!-- Add Lead Source -->
         <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
-          <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">➕ Add Lead Source</h4>
+          <h4 class="section-subheading">➕ Add Lead Source</h4>
           <form onsubmit="event.preventDefault(); addSource();">
             <div class="grid">
               <div>
@@ -1319,21 +1361,21 @@ header {
       </div>
       <div style="margin-top: 18px; border-top: 1px solid var(--border); padding-top: 16px;">
         <label for="jsonFileInput">Import Full Backup (JSON)</label>
-        <input type="file" id="jsonFileInput" accept=".json" style="margin-bottom: 10px;">
-        <button type="button" onclick="importDatabase()" class="btn-import" style="width: auto;">Upload & Restore Data</button>
+        <input type="file" id="jsonFileInput" accept=".json" class="file-input">
+        <button type="button" onclick="importDatabase()" class="btn-import btn-auto">Upload & Restore Data</button>
       </div>
     </div>
 
     <div class="card">
       <h3>👥 Import Team Members (Excel / CSV)</h3>
-      <input type="file" id="teamFileInput" accept=".xlsx, .xls, .csv" style="margin-bottom: 10px;">
-      <button type="button" onclick="importTeamFile()" class="btn-import" style="width: auto;">Upload Team File</button>
+      <input type="file" id="teamFileInput" accept=".xlsx, .xls, .csv" class="file-input">
+      <button type="button" onclick="importTeamFile()" class="btn-import btn-auto">Upload Team File</button>
     </div>
 
     <div class="card">
       <h3>📥 Import Buyers (Excel / CSV)</h3>
-      <input type="file" id="buyerFileInput" accept=".xlsx, .xls, .csv" style="margin-bottom: 10px;">
-      <button type="button" onclick="importBuyerFile()" class="btn-import" style="width: auto;">Upload Buyers File</button>
+      <input type="file" id="buyerFileInput" accept=".xlsx, .xls, .csv" class="file-input">
+      <button type="button" onclick="importBuyerFile()" class="btn-import btn-auto">Upload Buyers File</button>
     </div>
   </div>
 
@@ -1358,6 +1400,7 @@ header {
     let allNotesExpanded = false;
     let currentPage = 1;
     let rowsPerPage = 50;
+    let selectedIndexes = new Set(); // buyer[] indexes checked for export/call-sheet
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -1770,6 +1813,7 @@ header {
     function deleteBuyer(originalIndex) {
       if (confirm('Are you sure you want to delete this buyer record?')) {
         buyers.splice(originalIndex, 1);
+        selectedIndexes.clear(); // indexes shift after a delete, so drop any stale selection
         persistData();
         renderTable();
       }
@@ -1842,6 +1886,53 @@ header {
       renderTable();
     }
 
+    // Formats a Date object as YYYY-MM-DD using LOCAL time (avoids UTC off-by-one bugs)
+    function toLocalDateString(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function quickDateFilter(range) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let from = '', to = '';
+      const addDays = (n) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() + n);
+        return d;
+      };
+
+      switch (range) {
+        case 'overdue':
+          // Any follow-up date before today (blank dates are already excluded by the filter logic)
+          to = toLocalDateString(addDays(-1));
+          break;
+        case 'today':
+          from = to = toLocalDateString(today);
+          break;
+        case 'next3':
+          from = toLocalDateString(today);
+          to = toLocalDateString(addDays(3));
+          break;
+        case 'next7':
+          from = toLocalDateString(today);
+          to = toLocalDateString(addDays(7));
+          break;
+        case 'last7':
+          from = toLocalDateString(addDays(-7));
+          to = toLocalDateString(addDays(-1));
+          break;
+      }
+
+      document.getElementById('fromDate').value = from;
+      document.getElementById('toDate').value = to;
+      currentPage = 1;
+      renderTable();
+    }
+
     function resetFilters() {
       document.getElementById('filterAgent').value = 'ALL';
       document.getElementById('filterSource').value = 'ALL';
@@ -1873,10 +1964,9 @@ header {
       renderTable();
     }
 
-    function renderTable() {
-      const tbody = document.getElementById('buyerTableBody');
-      if (!tbody) return;
-
+    // Returns the fully filtered + sorted buyer list (all pages), each tagged with its
+    // originalIndex in the buyers[] array. Shared by renderTable() and the export/selection functions.
+    function getFilteredBuyers() {
       const agentFilter = document.getElementById('filterAgent').value;
       const sourceFilter = document.getElementById('filterSource').value;
       const stageFilter = document.getElementById('filterStage').value;
@@ -1914,6 +2004,329 @@ header {
         });
       }
 
+      return filtered;
+    }
+
+    // --- ROW SELECTION (for exporting a hand-picked subset) ---
+    function toggleRowSelect(idx, checked) {
+      if (checked) selectedIndexes.add(idx); else selectedIndexes.delete(idx);
+      updateSelectionUI(getFilteredBuyers());
+    }
+
+    function toggleSelectAllOnPage(checked) {
+      document.querySelectorAll('.row-select-checkbox').forEach(cb => {
+        const idx = parseInt(cb.dataset.index, 10);
+        if (checked) selectedIndexes.add(idx); else selectedIndexes.delete(idx);
+      });
+      renderTable();
+    }
+
+    function selectAllFiltered() {
+      getFilteredBuyers().forEach(b => selectedIndexes.add(b.originalIndex));
+      renderTable();
+    }
+
+    function clearSelection() {
+      selectedIndexes.clear();
+      renderTable();
+    }
+
+    function updateSelectionUI(filtered) {
+      const countEl = document.getElementById('selectedCount');
+      if (countEl) countEl.innerText = selectedIndexes.size;
+
+      const selectAllBox = document.getElementById('selectAllCheckbox');
+      if (selectAllBox) {
+        const pageIndexes = filtered.map(b => b.originalIndex);
+        selectAllBox.checked = pageIndexes.length > 0 && pageIndexes.every(i => selectedIndexes.has(i));
+      }
+    }
+
+    // Rows to hand off: whatever's checked, or (if nothing's checked) everything the current filters match.
+    function getExportRows() {
+      const filtered = getFilteredBuyers();
+      if (selectedIndexes.size > 0) {
+        return filtered.filter(b => selectedIndexes.has(b.originalIndex));
+      }
+      return filtered;
+    }
+
+    // Sorted by Team Member then Follow Up Date, so each rep's calls sit together in one block.
+    function sortForCallSheet(rows) {
+      return [...rows].sort((a, b) => {
+        const memberCompare = (a.member || '').localeCompare(b.member || '');
+        if (memberCompare !== 0) return memberCompare;
+        return (a.followUpDate || '9999-99-99').localeCompare(b.followUpDate || '9999-99-99');
+      });
+    }
+
+    // The rep this export belongs to: the active Team Member filter, or (if nothing's filtered
+    // and every exported row happens to share one rep) that rep's name — otherwise 'All'.
+    // Shared by the PDF footer and every export filename so they never disagree with each other.
+    function getExportMemberLabel(rows) {
+      const agentFilterVal = document.getElementById('filterAgent').value;
+      if (agentFilterVal !== 'ALL') return agentFilterVal;
+      const uniqueMembers = [...new Set(rows.map(b => b.member || 'Unassigned'))];
+      return uniqueMembers.length === 1 ? uniqueMembers[0] : 'All';
+    }
+
+    // Strips anything unsafe for a filename (spaces, slashes, punctuation) so names like
+    // "Kumaran R." or "Team A/B" never break the download.
+    function sanitizeForFilename(str) {
+      return String(str).trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'Unassigned';
+    }
+
+    // FollowUp_<Member or All>_<YYYYMMDD>_<HHmm>.<ext> — sortable by date, unique to the minute,
+    // and self-labeled so you can tell which printout is which without opening it.
+    // FollowUp_<Member or All>_YYMM_DD_HH MM.<ext>
+    function buildExportFilename(rows, ext) {
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      const member = sanitizeForFilename(getExportMemberLabel(rows));
+      return `FollowUp_${member}_${yy}${mm}_${dd}_${hh} ${min}.${ext}`;
+    }
+
+    function exportFollowUpExcel() {
+      const rows = sortForCallSheet(getExportRows());
+      if (rows.length === 0) { alert('No records match the current filters/selection.'); return; }
+
+      const data = rows.map(b => ({
+        'Team Member': b.member || 'Unassigned',
+        'Buyer': b.name,
+        'Phone': b.phone || '-',
+        'Follow Up Date': b.followUpDate || '-',
+        'Follow Up Time': b.followUpTime || '-',
+        'Status': b.status || '-',
+        'Stage': b.stage || '-',
+        'Last Contacted': b.lastContacted || '-',
+        'Notes': b.notes || ''
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      worksheet['!cols'] = [{ wch: 16 }, { wch: 20 }, { wch: 14 }, { wch: 13 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 14 }, { wch: 45 }];
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Follow-Up Sheet');
+      XLSX.writeFile(workbook, buildExportFilename(rows, 'xlsx'));
+    }
+
+    // Formats a Date as "18 Aug 2026, 00:09" for the print footer.
+    function formatPrintTimestamp(d) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const day = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      return `${day} ${months[d.getMonth()]} ${d.getFullYear()}, ${hh}:${mm}`;
+    }
+
+    // Describes exactly which filters produced this export — so a printout carries its own
+    // context (e.g. "why does this sheet only have 12 names?"). Omits anything left at default.
+    function buildFilterSummary() {
+      const agentFilter = document.getElementById('filterAgent').value;
+      const sourceFilter = document.getElementById('filterSource').value;
+      const stageFilter = document.getElementById('filterStage').value;
+      const searchKeyword = document.getElementById('searchKeyword').value.trim();
+      const searchNotes = document.getElementById('searchNotes').value.trim();
+      const fromDate = document.getElementById('fromDate').value;
+      const toDate = document.getElementById('toDate').value;
+      const hideInactive = document.getElementById('hideInactive').checked;
+
+      const parts = [];
+      if (agentFilter !== 'ALL') parts.push(`Team Member: ${agentFilter}`);
+      if (sourceFilter !== 'ALL') parts.push(`Source: ${sourceFilter}`);
+      if (stageFilter !== 'ALL') parts.push(`Stage: ${stageFilter}`);
+      if (fromDate && toDate) parts.push(`Follow Up: ${fromDate} to ${toDate}`);
+      else if (fromDate) parts.push(`Follow Up: from ${fromDate}`);
+      else if (toDate) parts.push(`Follow Up: up to ${toDate}`);
+      if (searchKeyword) parts.push(`Search: "${searchKeyword}"`);
+      if (searchNotes) parts.push(`Notes contain: "${searchNotes}"`);
+      if (hideInactive) parts.push('Inactive Hidden');
+      if (selectedIndexes.size > 0) parts.push(`Manually Selected: ${selectedIndexes.size} record(s)`);
+
+      return parts.length ? parts.join('   •   ') : null; // null = full/unfiltered list, nothing to print
+    }
+
+    function exportFollowUpPDF() {
+      const rows = sortForCallSheet(getExportRows());
+      if (rows.length === 0) { alert('No records match the current filters/selection.'); return; }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      doc.setFontSize(15);
+      doc.setTextColor(49, 46, 129);
+      doc.text('Follow-Up Call Sheet', 14, 15);
+
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text(`Generated ${new Date().toLocaleString()}  |  ${rows.length} record(s)`, 14, 21);
+
+      // Filter-criteria line — wraps onto extra lines if long, and pushes the table down to match
+      let tableStartY = 26;
+      const filterSummary = buildFilterSummary();
+      if (filterSummary) {
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        const filterLines = doc.splitTextToSize(`Filters applied: ${filterSummary}`, pageWidth - 28);
+        filterLines.forEach((line, i) => doc.text(line, 14, 26 + i * 4));
+        tableStartY = 26 + filterLines.length * 4 + 2;
+      }
+
+      const HEAD = ['Sl No', 'Buyer', 'Phone', 'Follow Up', 'Status', 'Stage', 'Notes', 'Remarks / Next Action'];
+      const NUM_COLUMNS = HEAD.length;
+
+      // Team Member is dropped from every row (the footer already names the rep for a
+      // single-rep sheet). For a MIXED sheet ("All"), a bold section-header row is inserted
+      // once per rep instead — same information, without repeating the name on every line.
+      const memberLabel = getExportMemberLabel(rows);
+      const showMemberDividers = memberLabel === 'All';
+
+      let slNo = 0;
+      let lastMember = null;
+      const body = [];
+      rows.forEach(b => {
+        const currentMember = b.member || 'Unassigned';
+        if (showMemberDividers && currentMember !== lastMember) {
+          body.push([{
+            content: currentMember,
+            colSpan: NUM_COLUMNS,
+            styles: { fillColor: [224, 231, 255], textColor: [49, 46, 129], fontStyle: 'bold', halign: 'left', fontSize: 8.5 }
+          }]);
+          lastMember = currentMember;
+        }
+        slNo++;
+        body.push([
+          slNo,
+          b.name,
+          b.phone || '-',
+          `${b.followUpDate || '-'} ${b.followUpTime || ''}`.trim(),
+          b.status || '-',
+          b.stage || '-',
+          b.notes || '',
+          '' // blank — for handwritten updates during the call/meeting
+        ]);
+      });
+
+      doc.autoTable({
+        startY: tableStartY,
+        head: [HEAD],
+        body: body,
+        margin: { bottom: 20 },
+        theme: 'grid', // thin border around every cell
+        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', valign: 'middle', lineWidth: 0.1, lineColor: [203, 213, 225] },
+        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold', lineWidth: 0.1, lineColor: [203, 213, 225] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },              // Sl No
+          1: { cellWidth: 30 },                                // Buyer
+          2: { cellWidth: 24 },                                // Phone
+          3: { cellWidth: 22 },                                // Follow Up
+          4: { cellWidth: 16 },                                // Status
+          5: { cellWidth: 26 },                                // Stage
+          6: { cellWidth: 'auto', valign: 'top' },             // Notes — top-aligned so wrapped multi-line text reads naturally
+          7: { cellWidth: 45, valign: 'top' }                  // Remarks / Next Action (blank writing space)
+        },
+        didParseCell: function (data) {
+          if (data.section === 'body' && data.column.index === 4) {
+            const val = (data.cell.raw || '').toString();
+            if (val === 'Hot') data.cell.styles.textColor = [220, 38, 38];
+            else if (val === 'Not Interested' || val === 'Not Responding') data.cell.styles.textColor = [148, 163, 184];
+          }
+        }
+      });
+
+      // --- FOOTER: Printed On (left) | Team Member (middle) | Page x of y (right) ---
+      // Reuses memberLabel from above — the same label used for the section dividers and the
+      // filename — so the footer, dividers, and filename can never tell three different stories.
+      const footerMember = memberLabel === 'All' ? 'All Team Members' : memberLabel;
+
+      const printedOn = formatPrintTimestamp(new Date());
+      const totalPages = doc.internal.getNumberOfPages();
+
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, pageHeight - 14, pageWidth - 14, pageHeight - 14);
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text(`Printed On: ${printedOn}`, 14, pageHeight - 8);
+        doc.text(footerMember, pageWidth / 2, pageHeight - 8, { align: 'center' });
+        doc.text(`Page ${i} of ${totalPages}  |  ${rows.length} Records`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+      }
+
+      doc.save(buildExportFilename(rows, 'pdf'));
+    }
+
+    // --- WHATSAPP-FRIENDLY TEXT EXPORT ---
+    // Groups by Team Member so it reads like a checklist a rep can work down during calls.
+    function generateFollowUpText(rows) {
+      const groups = {};
+      rows.forEach(b => {
+        const key = b.member || 'Unassigned';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(b);
+      });
+
+      let text = `*Follow-Up List — ${formatPrintTimestamp(new Date())}*\n\n`;
+      Object.keys(groups).sort().forEach(member => {
+        text += `*${member}* (${groups[member].length})\n`;
+        groups[member].forEach(b => {
+          const followUp = (b.followUpDate || b.followUpTime) ? `${b.followUpDate || ''} ${b.followUpTime || ''}`.trim() : 'No date set';
+          text += `• ${b.name} — ${b.phone || 'no phone'}\n   📅 ${followUp} | ${b.status || '-'} | ${b.stage || '-'}\n`;
+          if (b.notes) text += `   📝 ${b.notes}\n`;
+        });
+        text += `\n`;
+      });
+      return text.trim();
+    }
+
+    function copyFollowUpText() {
+      const rows = sortForCallSheet(getExportRows());
+      if (rows.length === 0) { alert('No records match the current filters/selection.'); return; }
+      const text = generateFollowUpText(rows);
+
+      const finish = () => alert(`✅ Copied ${rows.length} record(s) to clipboard. Paste into WhatsApp, SMS, or anywhere else.`);
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(finish).catch(() => fallbackCopy(text, finish));
+      } else {
+        fallbackCopy(text, finish);
+      }
+    }
+
+    function fallbackCopy(text, onDone) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); onDone(); }
+      catch (e) { alert('Could not copy automatically — please select and copy manually.'); }
+      document.body.removeChild(ta);
+    }
+
+    function shareFollowUpWhatsApp() {
+      const rows = sortForCallSheet(getExportRows());
+      if (rows.length === 0) { alert('No records match the current filters/selection.'); return; }
+      if (rows.length > 40) {
+        if (!confirm(`${rows.length} records is a lot for a single WhatsApp message — the link may get cut off. Use "Copy for WhatsApp" instead for large lists, or continue anyway?`)) return;
+      }
+      const text = generateFollowUpText(rows);
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('buyerTableBody');
+      if (!tbody) return;
+
+      const filtered = getFilteredBuyers();
+
       const totalRecords = filtered.length;
       const totalPages = Math.ceil(totalRecords / rowsPerPage) || 1;
       if (currentPage > totalPages) currentPage = totalPages;
@@ -1933,8 +2346,10 @@ header {
       document.getElementById('pageEnd').innerText = endIdx;
       document.getElementById('pageIndicator').innerText = `${currentPage} / ${totalPages}`;
 
+      updateSelectionUI(filtered);
+
       if (pageSlice.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#888; padding: 24px;">No matching records found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:#888; padding: 24px;">No matching records found.</td></tr>`;
         return;
       }
 
@@ -1945,9 +2360,10 @@ header {
 
         return `
           <tr>
+            <td data-label=""><input type="checkbox" class="row-select-checkbox" data-index="${actualIndex}" ${selectedIndexes.has(actualIndex) ? 'checked' : ''} onchange="toggleRowSelect(${actualIndex}, this.checked)" style="width: 16px; height: 16px; accent-color: var(--primary);"></td>
             <td data-label="Buyer"><strong>${b.name}</strong></td>
             
-            <td data-label="Phone & Connect" style="white-space: nowrap;">
+            <td data-label="Phone & Connect" class="nowrap">
               ${b.phone ? `
                 <a href="tel:${b.phone}" onclick="logContactAction(${actualIndex}, 'Call')" title="Call Buyer" style="text-decoration:none; margin-right:4px; font-size:15px;">📞</a>
                 <a href="https://wa.me/${cleanPhone}" target="_blank" onclick="logContactAction(${actualIndex}, 'WhatsApp')" title="WhatsApp Chat" style="text-decoration:none; margin-right:6px; font-size:15px;">💬</a>
@@ -1961,7 +2377,7 @@ header {
             <td data-label="Status">
               <span class="badge badge-${(b.status || 'warm').toLowerCase()}">${b.status}</span>
               <div style="margin-top: 4px;">
-                <select onchange="quickUpdateStatus(${actualIndex}, this.value)" style="font-size: 10px; padding: 2px; width: 100%;">
+                <select onchange="quickUpdateStatus(${actualIndex}, this.value)" class="mini-select">
                   <option value="" disabled selected>Flag Lead...</option>
                   <option value="Not Interested">🔴 Flag: Not Interested</option>
                   <option value="Not Responding">🔴 Flag: Lost / Delay</option>
@@ -1973,7 +2389,7 @@ header {
 
             <td data-label="Stage">
               <div style="font-weight: 600; margin-bottom: 4px;">${b.stage}</div>
-              <select onchange="quickUpdateStage(${actualIndex}, this.value)" style="font-size: 10px; padding: 2px; width: 100%;">
+              <select onchange="quickUpdateStage(${actualIndex}, this.value)" class="mini-select">
                 <option value="" disabled selected>Change Stage...</option>
                 ${stages.map(st => `<option value="${st}">${st}</option>`).join('')}
               </select>
@@ -1989,7 +2405,7 @@ header {
               </div>
             </td>
 
-            <td data-label="Actions" style="white-space: nowrap;">
+            <td data-label="Actions" class="nowrap">
               <button type="button" class="btn-edit" onclick="editBuyer(${actualIndex})">Edit</button>
               <button type="button" class="btn-danger" onclick="deleteBuyer(${actualIndex})">Delete</button>
             </td>
@@ -2050,6 +2466,7 @@ header {
           if (data.leadSources) leadSources = data.leadSources;
           if (data.stages) stages = data.stages;
           if (data.buyers) buyers = data.buyers;
+          selectedIndexes.clear(); // buyer indexes are invalid after a full data restore
           persistData();
           alert(`✅ Success: Backup restored to cloud!`);
         } catch (err) { alert(`❌ Error loading file.`); }
