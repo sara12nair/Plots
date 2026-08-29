@@ -1,11 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#112240">
-<link rel="apple-touch-icon" href="icon-192.png">
-
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plot Sales Monitor & Team SR Nair</title>
@@ -2845,16 +2840,43 @@ function updateVacantReport() {
     document.getElementById("vacantTfootTotalPrice").textContent = formatCurrency(totalPrice);
 }
 
+function getProjectLocationName(projectName) {
+    const name = String(projectName || "Project").trim();
+    const parts = name.split(',').map(part => part.trim()).filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 1] : name;
+}
+
+function sanitizePdfFilenamePart(value) {
+    return String(value || "")
+        .replace(/[\\/:*?"<>|]/g, "-")
+        .replace(/\s+/g, " ")
+        .replace(/-+/g, "-")
+        .trim();
+}
+
+function getPdfTimestamp(date = new Date()) {
+    const yy = String(date.getFullYear()).slice(-2);
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${yy}_${mm}${dd}_${hours}${minutes}`;
+}
+
 function triggerBookingCostSheetPrint() {
     updateReportTimestamp();
     document.body.classList.remove('printing-vacant-report');
     const p = getActiveProject();
-    const buyerName = document.getElementById("buyerName").value.trim() || "Client";
     const isQuote = document.getElementById("docTypeQuote") ? document.getElementById("docTypeQuote").checked : true;
-    const docTypeLabel = isQuote ? "Cost Estimate" : "Booking Cost Sheet";
-    
+    const docTypeLabel = isQuote ? "Estimate" : "Booking";
+    const locationName = sanitizePdfFilenamePart(getProjectLocationName(p.name)) || "Location";
+    const selectedPlotNos = Array.from(document.getElementById("plotMultiSelect").selectedOptions)
+        .map(option => sanitizePdfFilenamePart(option.value))
+        .filter(Boolean);
+    const plotLabel = selectedPlotNos.length === 1 ? "Plot" : "Plots";
+    const plotNumbers = selectedPlotNos.length ? selectedPlotNos.join(',') : "Not Selected";
     const now = new Date();
-    document.title = `${p.name} - ${docTypeLabel} - ${buyerName} - ${now.toISOString().split('T')[0]}`;
+    document.title = `${locationName} - ${docTypeLabel} - ${plotLabel} ${plotNumbers} - ${getPdfTimestamp(now)}`;
     setTimeout(() => { window.print(); }, 100);
 }
 
@@ -3744,14 +3766,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 </script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('Plots service worker registered'))
-      .catch(err => console.error('SW registration failed:', err));
-  });
-}
-</script>
+
 </body>
 </html>
