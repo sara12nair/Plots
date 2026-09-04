@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plot Sales Monitor & Team SR Nair</title>
 
+    <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#112240">
+
     <!-- Firebase SDKs for standard single-file HTML -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -3765,6 +3769,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
+
+// Register service worker so Chrome can detect this page as an installable PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.error('SW registration failed:', err));
+  });
+}
 </script>
 
 </body>
