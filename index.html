@@ -2155,13 +2155,16 @@ function toggleInventoryView() {
 }
 
 function initInventoryToggleState() {
-    const isCollapsed = localStorage.getItem('inventoryCollapsed') === 'true';
     const content = document.getElementById('inventoryCollapsibleContent');
     const btn = document.getElementById('toggleInventoryBtn');
-    if (isCollapsed && content && btn) {
+
+    // Safety default: every new app opening starts with the editable inventory
+    // controls hidden, irrespective of the previous device/session state.
+    if (content && btn) {
         content.style.display = 'none';
         btn.textContent = '▼ Expand Inventory';
     }
+    localStorage.setItem('inventoryCollapsed', 'true');
 }
 
 function initDatePicker() {
@@ -3768,6 +3771,10 @@ function printDailyLogsPDF() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Always open in Plot Inventory; keep the editable inventory collapsed to
+    // prevent an unintended plot-status tap immediately after launch.
+    switchMainAppView('plotTracker');
+    switchTrackerTab('inventory');
     initPlotTracker();
     populateMonthYearSelectors();
     renderMemberTable();
