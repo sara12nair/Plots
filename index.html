@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plot Sales Monitor & Team SR Nair</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#112240">
+    <meta name="description" content="Madras Trading House plot inventory, bookings, cost sheets and team performance monitor.">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MTH Plots">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <link rel="apple-touch-icon" href="./icon-192.png">
 
     <!-- Firebase SDKs for standard single-file HTML -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -85,6 +92,30 @@
             color: white;
             background: var(--primary);
         }
+
+        .app-brand-strip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 7px 10px;
+            border-radius: 7px;
+            background: #112240;
+            color: white;
+            box-shadow: 0 2px 5px rgba(15, 23, 42, .18);
+        }
+
+        .app-brand-strip img {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            object-fit: cover;
+            flex: 0 0 auto;
+        }
+
+        .app-brand-copy { line-height: 1.15; }
+        .app-brand-copy strong { display: block; font-size: .9rem; letter-spacing: .25px; }
+        .app-brand-copy span { display: block; margin-top: 3px; font-size: .67rem; color: #cbd5e1; }
 
         .app-view-container {
             display: none;
@@ -846,6 +877,14 @@
 <body>
 
 <div class="container">
+
+    <div class="app-brand-strip no-print">
+        <img src="./icon-192.png" alt="Madras Trading House logo">
+        <div class="app-brand-copy">
+            <strong>Madras Trading House</strong>
+            <span>Plot Sales Monitor &amp; Team</span>
+        </div>
+    </div>
 
     <!-- MASTER TOP LEVEL SWITCHER -->
     <div class="main-tab-bar no-print">

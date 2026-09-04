@@ -1,28 +1,30 @@
 {
-  "name": "Plot Sales Monitor & Team SR Nair",
-  "short_name": "Plot Monitor",
-  "description": "Plot inventory, booking cost sheets, and team performance tracking for Team SR Nair.",
+  "id": "./",
+  "name": "Madras Trading House - Plot Sales Monitor & Team",
+  "short_name": "MTH Plots",
+  "description": "Plot inventory, bookings, cost sheets and team performance monitoring for Madras Trading House.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#112240",
+  "orientation": "any",
+  "background_color": "#F8FAFC",
   "theme_color": "#112240",
+  "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512-maskable.png",
+      "src": "./icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
