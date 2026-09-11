@@ -908,7 +908,7 @@
                     <select id="projectSelect" onchange="switchProject()" style="padding: 4px; border-radius: 4px; font-weight: 600; border: 1px solid var(--border-color);"></select>
                     <button class="btn btn-outline" onclick="addNewProject()">➕ New</button>
                     <button class="btn btn-outline" onclick="cloneProject()">📋 Clone</button>
-                    <button class="btn btn-danger" onclick="deleteProject()">🗑️</button>
+                    <button class="btn btn-outline" onclick="archiveProject()" title="Export and move this project to Archived Projects">📦 Archive</button>
                     <button onclick="resetToDefaultState()" class="btn btn-danger">⚠️ Reset</button>
                 </div>
             </div>
@@ -1821,6 +1821,32 @@
 <!-- RECONCILIATION MODAL CONTAINER -->
 <div id="reconciliationModalContainer"></div>
 
+<!-- ARCHIVED PROJECTS MANAGER -->
+<div id="archiveProjectsModal" class="modal-backdrop" style="display: none;" onclick="if(event.target === this) closeArchiveProjects()">
+    <div class="modal-card" style="max-width: 820px;">
+        <div class="modal-header">
+            <span>📦 Archived Projects</span>
+            <button class="btn btn-danger" style="padding: 2px 8px; min-height: 24px;" onclick="closeArchiveProjects()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <label for="archiveSortSelect" style="font-weight:700;">Sort:</label>
+                <select id="archiveSortSelect" onchange="renderArchivedProjects()" style="padding:6px; border:1px solid var(--border-color); border-radius:4px;">
+                    <option value="closure_desc">Latest closure first</option>
+                    <option value="name_asc">Project name A–Z</option>
+                </select>
+                <button class="btn btn-outline" onclick="document.getElementById('archivedProjectFile').click()">📂 Import Archived JSON</button>
+                <input type="file" id="archivedProjectFile" accept=".json,application/json" style="display:none;" onchange="importArchivedProject(event)">
+            </div>
+            <div id="archivedProjectsList"></div>
+        </div>
+        <div class="modal-footer">
+            <span style="margin-right:auto; color:var(--text-muted);">Full Export JSON includes active and archived projects.</span>
+            <button class="btn btn-outline" onclick="closeArchiveProjects()">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- INTERNAL COMMISSION & PAYOUT LEDGER MODAL -->
 <div id="commissionModal" class="modal-backdrop" style="display: none;">
     <div class="modal-card" style="max-width: 750px;">
@@ -2000,6 +2026,7 @@ const LOCAL_BACKUP_KEYS = {
 let appData = {
     activeProjectIndex: 0,
     sigDataUrl: "",
+    archivedProjects: [],
     projects: [{
         name: "Elite SS City, Periyapalayam",
         logoDataUrl: "",
@@ -2175,6 +2202,7 @@ function initDatePicker() {
 }
 
 function initPlotTracker() {
+    ensureArchiveStructure();
     initDatePicker();
     populateProjectDropdown();
     loadProjectToUI();
@@ -2208,6 +2236,7 @@ function loadPortfolioState(event) {
             const importedState = JSON.parse(e.target.result);
             if (importedState && Array.isArray(importedState.projects)) {
                 appData = importedState;
+                ensureArchiveStructure();
                 autoSaveState();
                 initPlotTracker();
                 alert("State loaded successfully!");
@@ -2281,6 +2310,19 @@ function getActiveProject() {
     return proj;
 }
 
+function ensureArchiveStructure() {
+    if (!appData || typeof appData !== 'object') appData = { activeProjectIndex: 0, projects: [], archivedProjects: [] };
+    if (!Array.isArray(appData.projects)) appData.projects = [];
+    if (!Array.isArray(appData.archivedProjects)) appData.archivedProjects = [];
+    if (!Number.isInteger(appData.activeProjectIndex) || appData.activeProjectIndex < 0 || appData.activeProjectIndex >= appData.projects.length) {
+        appData.activeProjectIndex = 0;
+    }
+}
+
+function compareProjectNames(a, b) {
+    return String(a?.name || '').localeCompare(String(b?.name || ''), undefined, { sensitivity: 'base', numeric: true });
+}
+
 function getActiveBank() {
     const p = getActiveProject();
     if (!p.approvedBanks || p.approvedBanks.length === 0) return { financier: "N/A", bankerSft: 0, loanPct: 0 };
@@ -2291,18 +2333,39 @@ function getActiveBank() {
 function populateProjectDropdown() {
     const select = document.getElementById("projectSelect");
     select.innerHTML = "";
-    if (!appData.projects) return;
-    appData.projects.forEach((p, idx) => {
+    ensureArchiveStructure();
+    appData.projects
+      .map((p, idx) => ({ p, idx }))
+      .sort((a, b) => compareProjectNames(a.p, b.p))
+      .forEach(({ p, idx }) => {
         const opt = document.createElement("option");
         opt.value = idx;
         opt.textContent = p.name;
         if (idx === appData.activeProjectIndex) opt.selected = true;
         select.appendChild(opt);
     });
+
+    const separator = document.createElement("option");
+    separator.disabled = true;
+    separator.textContent = "────────────";
+    select.appendChild(separator);
+
+    const archiveOption = document.createElement("option");
+    archiveOption.value = "__archives__";
+    archiveOption.textContent = `📦 View Archived Projects (${appData.archivedProjects.length})`;
+    select.appendChild(archiveOption);
 }
 
 function switchProject() {
-    appData.activeProjectIndex = parseInt(document.getElementById("projectSelect").value);
+    const select = document.getElementById("projectSelect");
+    if (select.value === "__archives__") {
+        openArchiveProjects();
+        populateProjectDropdown();
+        return;
+    }
+    const selectedIndex = Number.parseInt(select.value, 10);
+    if (!Number.isInteger(selectedIndex) || !appData.projects[selectedIndex]) return;
+    appData.activeProjectIndex = selectedIndex;
     loadProjectToUI();
     autoSaveState();
 }
@@ -3094,18 +3157,244 @@ function cloneProject() {
     autoSaveState();
 }
 
-function deleteProject() {
+function makeArchiveId() {
+    return `archive_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function compactArchiveTimestamp(date = new Date()) {
+    const yy = String(date.getFullYear()).slice(-2);
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mi = String(date.getMinutes()).padStart(2, '0');
+    return `${yy}${mm}${dd}_${hh}${mi}`;
+}
+
+function safeArchiveFilename(value) {
+    return String(value || 'Project')
+        .replace(/[\\/:*?"<>|]/g, '-')
+        .replace(/\s+/g, '_')
+        .replace(/_+/g, '_')
+        .trim();
+}
+
+function downloadJsonFile(payload, filename) {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function buildArchivedExport(project) {
+    return {
+        format: 'MTH_PROJECT_ARCHIVE_V1',
+        exportedAt: new Date().toISOString(),
+        archivedProject: project
+    };
+}
+
+function archiveProject() {
+    ensureArchiveStructure();
     if (appData.projects.length <= 1) {
-        alert("Cannot delete the only remaining project.");
+        alert('Please create or clone the next active project before archiving the only active project.');
         return;
     }
-    if (confirm(`Are you sure you want to delete project "${getActiveProject().name}"?`)) {
-        appData.projects.splice(appData.activeProjectIndex, 1);
-        appData.activeProjectIndex = 0;
-        populateProjectDropdown();
-        loadProjectToUI();
-        autoSaveState();
+
+    const project = getActiveProject();
+    const plots = Array.isArray(project.plots) ? project.plots : [];
+    const notSoldCount = plots.filter(plot => String(plot.status || '').toLowerCase() !== 'sold').length;
+    if (notSoldCount > 0 && !confirm(`${notSoldCount} plot(s) are not marked Sold. Archive "${project.name}" anyway?`)) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const closedOn = prompt('Closure date (YYYY-MM-DD):', today);
+    if (closedOn === null) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(closedOn) || Number.isNaN(new Date(`${closedOn}T00:00:00`).getTime())) {
+        alert('Please enter a valid closure date in YYYY-MM-DD format.');
+        return;
     }
+    if (!confirm(`Archive "${project.name}" and remove it from the active project list?\n\nAn individual JSON backup will download automatically.`)) return;
+
+    const archivedProject = JSON.parse(JSON.stringify(project));
+    archivedProject.archiveMeta = {
+        id: makeArchiveId(),
+        archivedAt: new Date().toISOString(),
+        closedOn,
+        archivedBy: document.getElementById('coordinatorName')?.value?.trim() || 'Sashi R Nair'
+    };
+
+    downloadJsonFile(
+        buildArchivedExport(archivedProject),
+        `MTH_${safeArchiveFilename(project.name)}_Archived_${compactArchiveTimestamp()}.json`
+    );
+
+    appData.archivedProjects.push(archivedProject);
+    appData.projects.splice(appData.activeProjectIndex, 1);
+    const firstAlphabetical = appData.projects
+        .map((p, idx) => ({ p, idx }))
+        .sort((a, b) => compareProjectNames(a.p, b.p))[0];
+    appData.activeProjectIndex = firstAlphabetical ? firstAlphabetical.idx : 0;
+    populateProjectDropdown();
+    loadProjectToUI();
+    autoSaveState();
+    alert(`"${project.name}" was exported and archived successfully.`);
+}
+
+function normalizeArchivedProject(project) {
+    if (!project.archiveMeta || typeof project.archiveMeta !== 'object') project.archiveMeta = {};
+    if (!project.archiveMeta.id) project.archiveMeta.id = makeArchiveId();
+    if (!project.archiveMeta.archivedAt) project.archiveMeta.archivedAt = new Date().toISOString();
+    if (!project.archiveMeta.closedOn) project.archiveMeta.closedOn = project.archiveMeta.archivedAt.slice(0, 10);
+    return project;
+}
+
+function getArchivedProjectById(id) {
+    ensureArchiveStructure();
+    return appData.archivedProjects.find(project => normalizeArchivedProject(project).archiveMeta.id === id);
+}
+
+function openArchiveProjects() {
+    ensureArchiveStructure();
+    renderArchivedProjects();
+    document.getElementById('archiveProjectsModal').style.display = 'flex';
+}
+
+function closeArchiveProjects() {
+    document.getElementById('archiveProjectsModal').style.display = 'none';
+    populateProjectDropdown();
+}
+
+function archivedProjectStats(project) {
+    const plots = Array.isArray(project.plots) ? project.plots : [];
+    return {
+        total: plots.length,
+        sold: plots.filter(plot => String(plot.status || '').toLowerCase() === 'sold').length
+    };
+}
+
+function formatArchiveDate(value) {
+    if (!value) return '-';
+    const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function archiveHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+function renderArchivedProjects() {
+    ensureArchiveStructure();
+    const container = document.getElementById('archivedProjectsList');
+    const sortMode = document.getElementById('archiveSortSelect')?.value || 'closure_desc';
+    const projects = appData.archivedProjects.map(normalizeArchivedProject).slice();
+    if (sortMode === 'name_asc') {
+        projects.sort(compareProjectNames);
+    } else {
+        projects.sort((a, b) => String(b.archiveMeta.closedOn || b.archiveMeta.archivedAt).localeCompare(String(a.archiveMeta.closedOn || a.archiveMeta.archivedAt)) || compareProjectNames(a, b));
+    }
+
+    if (!projects.length) {
+        container.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-muted); border:1px dashed var(--border-color); border-radius:6px;">No archived projects.</div>';
+        return;
+    }
+
+    container.innerHTML = projects.map(project => {
+        const stats = archivedProjectStats(project);
+        const id = project.archiveMeta.id;
+        return `<div style="border:1px solid var(--border-color); border-radius:6px; padding:10px; margin-bottom:8px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+                <div>
+                    <div style="font-weight:800; color:var(--primary);">${archiveHtml(project.name)}</div>
+                    <div style="font-size:.72rem; color:var(--text-muted); margin-top:3px;">Closed: ${formatArchiveDate(project.archiveMeta.closedOn)} · Sold ${stats.sold}/${stats.total} plots · Archived by ${archiveHtml(project.archiveMeta.archivedBy || '-')}</div>
+                </div>
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                    <button class="btn btn-outline" onclick="exportArchivedProject('${id}')">💾 Export</button>
+                    <button class="btn btn-success" onclick="restoreArchivedProject('${id}')">↩ Restore</button>
+                    <button class="btn btn-danger" onclick="permanentlyDeleteArchivedProject('${id}')">Delete permanently</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function exportArchivedProject(id) {
+    const project = getArchivedProjectById(id);
+    if (!project) return alert('Archived project was not found.');
+    downloadJsonFile(
+        buildArchivedExport(project),
+        `MTH_${safeArchiveFilename(project.name)}_Archived_${compactArchiveTimestamp()}.json`
+    );
+}
+
+function restoreArchivedProject(id) {
+    const archived = getArchivedProjectById(id);
+    if (!archived) return alert('Archived project was not found.');
+    let restoredName = archived.name;
+    if (appData.projects.some(project => String(project.name).trim().toLowerCase() === String(restoredName).trim().toLowerCase())) {
+        restoredName = prompt('An active project already has this name. Enter a name for the restored copy:', `${archived.name} (Restored)`);
+        if (!restoredName) return;
+    }
+    if (!confirm(`Restore "${archived.name}" to the active project list?`)) return;
+
+    const restored = JSON.parse(JSON.stringify(archived));
+    delete restored.archiveMeta;
+    restored.name = restoredName.trim();
+    appData.projects.push(restored);
+    appData.activeProjectIndex = appData.projects.length - 1;
+    appData.archivedProjects = appData.archivedProjects.filter(project => normalizeArchivedProject(project).archiveMeta.id !== id);
+    autoSaveState();
+    closeArchiveProjects();
+    loadProjectToUI();
+    alert(`"${restored.name}" was restored and is now active.`);
+}
+
+function permanentlyDeleteArchivedProject(id) {
+    const project = getArchivedProjectById(id);
+    if (!project) return alert('Archived project was not found.');
+    const typed = prompt(`Permanent deletion cannot be undone.\nType DELETE to permanently remove "${project.name}":`);
+    if (typed !== 'DELETE') return alert('Permanent deletion cancelled.');
+    appData.archivedProjects = appData.archivedProjects.filter(item => normalizeArchivedProject(item).archiveMeta.id !== id);
+    autoSaveState();
+    populateProjectDropdown();
+    renderArchivedProjects();
+}
+
+function importArchivedProject(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(loadEvent) {
+        try {
+            const parsed = JSON.parse(loadEvent.target.result);
+            const candidate = parsed?.format === 'MTH_PROJECT_ARCHIVE_V1' ? parsed.archivedProject : parsed?.archivedProject;
+            if (!candidate || typeof candidate !== 'object' || !String(candidate.name || '').trim() || !Array.isArray(candidate.plots)) {
+                throw new Error('Invalid archived project file');
+            }
+            const imported = normalizeArchivedProject(JSON.parse(JSON.stringify(candidate)));
+            const duplicate = appData.archivedProjects.some(project => {
+                normalizeArchivedProject(project);
+                return project.archiveMeta.id === imported.archiveMeta.id ||
+                    (String(project.name).trim().toLowerCase() === String(imported.name).trim().toLowerCase() && project.archiveMeta.closedOn === imported.archiveMeta.closedOn);
+            });
+            if (duplicate) return alert('This archived project is already present. Nothing was imported.');
+            imported.archiveMeta.id = makeArchiveId();
+            imported.archiveMeta.importedAt = new Date().toISOString();
+            appData.archivedProjects.push(imported);
+            autoSaveState();
+            populateProjectDropdown();
+            renderArchivedProjects();
+            alert(`"${imported.name}" was imported into Archived Projects.`);
+        } catch (error) {
+            alert('Could not import this file. Please select an MTH archived-project JSON file.');
+        } finally {
+            event.target.value = '';
+        }
+    };
+    reader.readAsText(file);
 }
 
 let currentDesignationFilter = 'ALL';
@@ -3678,7 +3967,11 @@ function switchLedgerProject() {
 
 function openInternalCommissionModal() {
     const projSelect = document.getElementById('payoutProjectSelect');
-    projSelect.innerHTML = appData.projects.map((pr, idx) => `<option value="${idx}" ${idx === appData.activeProjectIndex ? 'selected' : ''}>${pr.name}</option>`).join('');
+    projSelect.innerHTML = appData.projects
+        .map((pr, idx) => ({ pr, idx }))
+        .sort((a, b) => compareProjectNames(a.pr, b.pr))
+        .map(({ pr, idx }) => `<option value="${idx}" ${idx === appData.activeProjectIndex ? 'selected' : ''}>${archiveHtml(pr.name)}</option>`)
+        .join('');
     switchLedgerProject();
     document.getElementById('commissionModal').style.display = 'flex';
 }
@@ -3791,6 +4084,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = snapshot.val();
         if (data && data.projects) {
             appData = data;
+            ensureArchiveStructure();
             populateProjectDropdown();
             loadProjectToUI();
             updateReportTimestamp();
