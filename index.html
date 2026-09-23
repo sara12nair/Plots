@@ -872,6 +872,29 @@
                 margin: 0 !important;
             }
         }
+    
+        /* PROJECT & BANK SETUP SAFETY LOCK — UI safeguard against accidental editing */
+        #tabBtnSettings.settings-unlocked {
+            color: #92400e;
+            background: #fef3c7;
+            border-bottom-color: #f59e0b;
+        }
+        .setup-lock-banner {
+            background: #fff7ed;
+            border: 1px solid #fdba74;
+            color: #9a3412;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: .76rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
     </style>
 </head>
 <body>
@@ -918,7 +941,7 @@
         <div class="tab-bar no-print">
             <button class="tab-btn active" id="tabBtnInventory" onclick="switchTrackerTab('inventory')">📋 Plot Inventory</button>
             <button class="tab-btn" id="tabBtnBooking" onclick="switchTrackerTab('booking')">📝 Booking & Cost Sheet</button>
-            <button class="tab-btn" id="tabBtnSettings" onclick="switchTrackerTab('settings')">⚙️ Project & Bank Setup</button>
+            <button class="tab-btn" id="tabBtnSettings" onclick="requestSettingsUnlock()">🔒 Project & Bank Setup</button>
         </div>
 
         <!-- TAB 1: PLOT INVENTORY MANAGEMENT & VACANT REPORT -->
@@ -1258,6 +1281,10 @@
 
         <!-- TAB 3: PROJECT PRICING & APPROVED BANKS SETUP -->
         <div id="tabSettings" class="tab-content">
+            <div class="setup-lock-banner no-print">
+                <span>🔓 MASTER SETUP UNLOCKED — changes here affect project pricing, banks and commission parameters.</span>
+                <button type="button" class="btn btn-outline" style="width:auto;" onclick="lockProjectBankSetup(true)">🔒 Lock Setup Now</button>
+            </div>
             <div class="card">
                 <h3>🎨 Branding & Project Logo</h3>
                 <div class="form-group" style="margin-top: 4px;">
@@ -4118,6 +4145,74 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.error('SW registration failed:', err));
   });
 }
+</script>
+
+
+<script>
+/* === PROJECT & BANK SETUP SAFETY LOCK ===
+   This is an accidental-edit safeguard, not authentication/security.
+   It does not change any existing project, bank, pricing or commission values. */
+let projectBankSetupUnlocked = false;
+
+function requestSettingsUnlock() {
+    if (projectBankSetupUnlocked) {
+        switchTrackerTab('settings');
+        return;
+    }
+
+    const answer = window.prompt(
+        '🔒 Project & Bank Setup is locked to prevent accidental changes.\n\n' +
+        'This area controls project rates, bank parameters and commission rates.\n\n' +
+        'Type UNLOCK to open it for editing:'
+    );
+
+    if ((answer || '').trim().toUpperCase() !== 'UNLOCK') {
+        return;
+    }
+
+    projectBankSetupUnlocked = true;
+    const btn = document.getElementById('tabBtnSettings');
+    if (btn) {
+        btn.textContent = '🔓 Project & Bank Setup';
+        btn.classList.add('settings-unlocked');
+    }
+    switchTrackerTab('settings');
+}
+
+function lockProjectBankSetup(returnToInventory) {
+    projectBankSetupUnlocked = false;
+    const btn = document.getElementById('tabBtnSettings');
+    if (btn) {
+        btn.textContent = '🔒 Project & Bank Setup';
+        btn.classList.remove('settings-unlocked');
+    }
+    if (returnToInventory) switchTrackerTab('inventory');
+}
+
+/* Re-lock whenever user leaves Settings. Preserve the app's original tab function. */
+(function () {
+    const originalSwitchTrackerTab = window.switchTrackerTab;
+    if (typeof originalSwitchTrackerTab !== 'function') return;
+
+    window.switchTrackerTab = function(tabName) {
+        if (tabName === 'settings' && !projectBankSetupUnlocked) {
+            requestSettingsUnlock();
+            return;
+        }
+
+        const result = originalSwitchTrackerTab.apply(this, arguments);
+
+        if (tabName !== 'settings' && projectBankSetupUnlocked) {
+            projectBankSetupUnlocked = false;
+            const btn = document.getElementById('tabBtnSettings');
+            if (btn) {
+                btn.textContent = '🔒 Project & Bank Setup';
+                btn.classList.remove('settings-unlocked');
+            }
+        }
+        return result;
+    };
+})();
 </script>
 
 </body>
