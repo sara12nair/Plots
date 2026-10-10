@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Final 261010_1848 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -251,14 +251,27 @@
             width: 100%;
         }
 
-        #printableVacantReport th:nth-child(1), #printableVacantReport td:nth-child(1) { width: 5%; text-align: center; }
-        #printableVacantReport th:nth-child(2), #printableVacantReport td:nth-child(2) { width: 9%; text-align: left; }
-        #printableVacantReport th:nth-child(3), #printableVacantReport td:nth-child(3) { width: 8%; text-align: center; }
-        #printableVacantReport th:nth-child(4), #printableVacantReport td:nth-child(4) { width: 11%; text-align: right; }
-        #printableVacantReport th:nth-child(5), #printableVacantReport td:nth-child(5) { width: 8%; text-align: center; }
-        #printableVacantReport th:nth-child(6), #printableVacantReport td:nth-child(6) { width: 12%; text-align: right; }
-        #printableVacantReport th:nth-child(7), #printableVacantReport td:nth-child(7) { width: 15%; text-align: right; }
-        #printableVacantReport th:nth-child(8), #printableVacantReport td:nth-child(8) { width: 32%; text-align: left; word-wrap: break-word; white-space: normal; }
+        #printableVacantReport th, #printableVacantReport td { overflow-wrap:anywhere; }
+        #printableVacantReport th:nth-child(1) { width:4%; }
+        #printableVacantReport th:nth-child(2) { width:12%; }
+        #printableVacantReport th:nth-child(3) { width:4%; }
+        #printableVacantReport th:nth-child(4) { width:9%; }
+        #printableVacantReport th:nth-child(5) { width:6%; }
+        #printableVacantReport th:nth-child(6) { width:9%; }
+        #printableVacantReport th:nth-child(7) { width:13%; }
+        #printableVacantReport th:nth-child(8) { width:13%; }
+        #printableVacantReport th:nth-child(9) { width:14%; }
+        #printableVacantReport th:nth-child(10) { width:16%; }
+        /* Keep combined plot numbers (e.g. 127/128) on one line. */
+        #vacantReportTbody td:nth-child(2) { white-space:nowrap !important; overflow-wrap:normal !important; word-break:normal !important; }
+        .mth-print-area-summary { margin:5px 0 8px; padding:6px 9px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; font-size:11px; }
+        .mth-print-area-summary strong { color:#1e3a8a; }
+        @media print { #mthPrintAreaSummary { display: none !important; } }
+        .mth-range-banner { margin:5px 0 7px; padding:7px 10px; text-align:center; background:#eaf2ff; border:1.5px solid #1d4ed8; border-radius:5px; color:#173a7a; }
+        .mth-range-banner .range-title { font-size:14px; font-weight:800; letter-spacing:.4px; }
+        .mth-range-banner .range-count { font-size:11px; font-weight:700; margin-top:2px; }
+        @media print { .mth-range-banner { break-inside:avoid; padding:5px 8px; } .mth-range-banner .range-title { font-size:12pt; } .mth-range-banner .range-count { font-size:9pt; } }
+        @media print { #printableVacantReport th { font-size:5pt !important; } #printableVacantReport td { font-size:6.4pt !important; } }
 
         #inventoryTbody th, #inventoryTbody td, 
         .inventory-table th, .inventory-table td {
@@ -895,16 +908,21 @@
             flex-wrap: wrap;
         }
 
+        #vacantAreaBreakdownDetails[hidden] { display:none !important; }
+        #mthAreaPrev:disabled, #mthAreaNext:disabled { opacity:.3; cursor:not-allowed; background:#e2e8f0; color:#64748b; }
+
+        .mth-kpi-area { margin-top:4px;padding-top:4px;border-top:1px solid #cbd5e1;font-size:.7rem;font-weight:700;color:#475569;white-space:nowrap; }
+        @media(max-width:520px) { .mth-summary-kpis {gap:3px;}.mth-summary-kpis .kpi-card{padding:4px 2px}.mth-summary-kpis .kpi-card .lbl{font-size:.51rem}.mth-kpi-area{font-size:.58rem} }
     </style>
 </head>
 <body>
 
 <div class="container">
 
-    <div class="app-brand-strip no-print">
+    <div class="app-brand-strip no-print" title="Final build 261010_1848 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong>
+            <strong>Madras Trading House</strong><!-- Final build 261010_1848 IST; preserve approved header layout -->
             <span>Plot Sales Monitor &amp; Team</span>
         </div>
     </div>
@@ -964,6 +982,16 @@
                     </div>
                 </div>
 
+                <div class="toolbar no-print" style="margin:6px 0;align-items:end" id="vacantAreaFilterBar">
+                    <strong style="font-size:.8rem">📐 Vacant plots by area</strong>
+                    <button type="button" id="mthAreaPrev" class="btn btn-outline" onclick="mthStepArea(-1)" title="Previous available plot size" aria-label="Previous available plot size">◀</button>
+                    <div class="form-group"><label for="vacantAreaFrom">From (SFT)</label><input id="vacantAreaFrom" type="number" min="0" step="1" placeholder="e.g. 600" style="width:100px" oninput="mthAreaFromChanged()"></div>
+                    <div class="form-group"><label for="vacantAreaTo">To (SFT)</label><input id="vacantAreaTo" type="number" min="0" step="1" placeholder="e.g. 700" style="width:100px" oninput="mthAreaToChanged()"></div>
+                    <button type="button" id="mthAreaNext" class="btn btn-outline" onclick="mthStepArea(1)" title="Next available plot size" aria-label="Next available plot size">▶</button>
+                    <button type="button" class="btn" onclick="mthApplyAreaFilter()">Apply</button>
+                    <button type="button" class="btn btn-outline" onclick="mthClearAreaFilter()">Clear</button>
+                    <span id="vacantAreaMatches" style="font-weight:600;font-size:.75rem"></span>
+                </div>
                 <!-- Collapsible Wrapper for Table & Toolbar -->
                 <div id="inventoryCollapsibleContent">
                     <div class="toolbar">
@@ -1016,38 +1044,32 @@
                         </div>
                         <div class="report-title-box">
                             <h1 id="vacantRptProjName">PROJECT NAME</h1>
-                            <div class="report-subtitle">VACANT PLOTS AVAILABILITY REPORT</div>
+                            <div class="report-subtitle" id="vacantReportSubtitle">VACANT PLOTS AVAILABILITY REPORT</div>
                         </div>
                     </div>
 
-                    <!-- Executive Summary KPI Cards -->
-                    <div class="kpi-container" style="grid-template-columns: repeat(5, 1fr);">
-                        <div class="kpi-card">
-                            <div class="lbl">Available Plots</div>
-                            <div class="val" id="vacantKpiPlotCount">0</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="lbl">Booked Plots</div>
-                            <div class="val" id="vacantKpiBookedPlotCount" style="color: #ca8a04;">0</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="lbl">Sold Plots</div>
-                            <div class="val" id="vacantKpiSoldPlotCount" style="color: var(--success);">0</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="lbl">Total Plots</div>
-                            <div class="val" id="vacantKpiTotalPlotsCount">0</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="lbl">Total Available Area</div>
-                            <div class="val" id="vacantKpiTotalArea">0 SFT</div>
-                        </div>
-                        <div class="kpi-card full-span" style="grid-column: span 5;">
-                            <div class="lbl">Total Inventory Value</div>
-                            <div class="val" id="vacantKpiTotalValue">₹0</div>
-                        </div>
+                    <div class="mth-range-banner" aria-live="polite">
+                        <div class="range-title" id="mthVacantRangeHeading">ALL VACANT PLOTS</div>
+                        <div class="range-count" id="mthVacantRangeCount">0 PLOTS AVAILABLE | 0 SFT TOTAL</div>
+                    </div>
+                    <!-- Compact project inventory KPIs: project totals stay unchanged by area filter -->
+                    <div class="kpi-container mth-summary-kpis" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+                        <div class="kpi-card"><div class="lbl">Total Plots</div><div class="val" id="vacantKpiTotalPlotsCount">0</div><div class="mth-kpi-area" id="mthTotalArea">0 SFT</div></div>
+                        <div class="kpi-card"><div class="lbl">Sold Plots</div><div class="val" id="vacantKpiSoldPlotCount" style="color:var(--success)">0</div><div class="mth-kpi-area" id="mthSoldArea">0 SFT</div></div>
+                        <div class="kpi-card"><div class="lbl">Booked Plots</div><div class="val" id="vacantKpiBookedPlotCount" style="color:#ca8a04">0</div><div class="mth-kpi-area" id="mthBookedArea">0 SFT</div></div>
+                        <div class="kpi-card"><div class="lbl">Vacant Plots</div><div class="val" id="vacantKpiPlotCount">0</div><div class="mth-kpi-area" id="vacantKpiTotalArea">0 SFT</div></div>
+                        <div class="kpi-card" style="grid-column:1/-1"><div class="lbl">Total Vacant Inventory Value</div><div class="val" id="vacantKpiTotalValue">₹0</div></div>
                     </div>
 
+                    <div id="vacantAreaBreakdown" class="no-print" style="margin:6px 0;border:1px solid #cbd5e1;border-radius:5px;overflow:hidden">
+                        <button type="button" id="vacantAreaBreakdownToggle" onclick="mthToggleAreaBreakdown()" aria-expanded="false" style="display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#f1f5f9;color:#1e3a8a;border:0;cursor:pointer;font-weight:700;font-size:.76rem;text-align:left">
+                            <span id="vacantAreaBreakdownSummary">📐 Available by Area</span><span id="vacantAreaBreakdownArrow">▼ View Breakdown</span>
+                        </button>
+                        <div id="vacantAreaBreakdownDetails" hidden style="padding:8px 10px;max-height:240px;overflow:auto">
+                            <table style="max-width:440px"><thead><tr><th>Area (SFT)</th><th style="text-align:right">Vacant Plots</th></tr></thead><tbody id="vacantAreaBreakdownRows"></tbody></table>
+                        </div>
+                    </div>
+                    <div id="mthPrintAreaSummary" class="mth-print-area-summary"><strong>VACANT PLOTS BY AREA:</strong> <span id="mthPrintAreaCounts">—</span></div>
                     <!-- Vacant Plots Table -->
                     <div class="table-responsive">
                         <table>
@@ -1058,8 +1080,10 @@
                                     <th style="text-align: center;">FACING</th>
                                     <th style="text-align: right;">AREA (SFT)</th>
                                     <th style="text-align: center;">CORNER?</th>
-                                    <th style="text-align: right;">EFF. RATE</th>
-                                    <th style="text-align: right;">CALCULATED PRICE (₹)</th>
+                                    <th style="text-align: right;">SELLING RATE/SFT</th>
+                                    <th style="text-align: right;">PLOT COST (₹)</th>
+                                    <th style="text-align: right;">REGN + DOC (₹)</th>
+                                    <th style="text-align: right;">TOTAL EST. COST (₹)</th>
                                     <th style="text-align: left;">Notes</th>
                                 </tr>
                             </thead>
@@ -1070,6 +1094,8 @@
                                     <td style="text-align: right;" id="vacantTfootTotalArea">0 SFT</td>
                                     <td></td>
                                     <td></td>
+                                    <td style="text-align: right;" id="vacantTfootPlotCost">₹0</td>
+                                    <td style="text-align: right;" id="vacantTfootRegnDoc">₹0</td>
                                     <td style="text-align: right; color: var(--primary);" id="vacantTfootTotalPrice">₹0</td>
                                     <td></td>
                                 </tr>
@@ -2445,6 +2471,8 @@ function loadProjectToUI() {
     renderInventoryTable();
     populateMultiPlotSelect();
     renderReport();
+    mthSuggestAreaRange();
+    mthUpdateAreaArrows();
     updateVacantReport();
     updateReportTimestamp();
 }
@@ -2583,7 +2611,7 @@ function calculatePlotFinancials(p, plot) {
     const baseCost = plot.area * ((p.priceSft || 0) - offerValue);
     
     const guideValueTotal = plot.area * (p.guideValue || 0);
-    const taxVal = guideValueTotal * 0.09;
+    const taxVal = guideValueTotal * ((Number(p.taxPct) || 0) / 100);
     const taxAndDoc = taxVal + (p.docCharges || 0);
 
     const taxableTotal = baseCost + cornerCost;
@@ -2922,9 +2950,143 @@ function renderReport() {
     document.getElementById("rptBalanceLabel").textContent = isQuote ? "Total Payable Amount:" : "Balance Payable:";
 }
 
-function updateVacantReport() {
+function mthToggleAreaBreakdown() {
+    const details = document.getElementById('vacantAreaBreakdownDetails');
+    details.hidden = !details.hidden;
+    document.getElementById('vacantAreaBreakdownToggle').setAttribute('aria-expanded', String(!details.hidden));
+    document.getElementById('vacantAreaBreakdownArrow').textContent = details.hidden ? '▼ View Breakdown' : '▲ Hide Breakdown';
+}
+
+// Suggested ranges never filter the report until Apply is pressed.
+let mthAreaFilterApplied = false;
+function mthVacantSizes() {
     const p = getActiveProject();
-    const vacantPlots = (p.plots || []).filter(plot => String(plot.status || 'Vacant').trim().toLowerCase() === 'vacant');
+    return [...new Set((p.plots || [])
+        .filter(plot => String(plot.status || 'Vacant').trim().toLowerCase() === 'vacant')
+        .map(plot => Number(plot.area)).filter(n => Number.isFinite(n) && n > 0))].sort((a,b) => a-b);
+}
+function mthSuggestAreaRange() {
+    const sizes = mthVacantSizes();
+    document.getElementById('vacantAreaFrom').value = sizes[0] ?? '';
+    document.getElementById('vacantAreaTo').value = sizes[1] ?? sizes[0] ?? '';
+    mthAreaFilterApplied = false;
+    mthUpdateAreaArrows();
+}
+function mthAreaFromChanged() {
+    const from = document.getElementById('vacantAreaFrom');
+    const to = document.getElementById('vacantAreaTo');
+    const value = Number(from.value);
+    if (from.value === '') to.value = '';
+    else {
+        const next = mthVacantSizes().find(size => size > value);
+        to.value = next ?? value;
+    }
+    mthAreaFilterApplied = false;
+    mthUpdateAreaArrows();
+    updateVacantReport();
+}
+function mthAreaToChanged() {
+    mthUpdateAreaArrows();
+    mthAreaFilterApplied = false;
+    updateVacantReport();
+}
+// Automatic arrow ranges use disjoint pairs of available plot sizes.
+// Manually entered From/To filters remain inclusive and unchanged.
+function mthAreaGroups() {
+    const sizes = mthVacantSizes();
+    const groups = [];
+    for (let i = 0; i < sizes.length; i += 2) {
+        const lower = i === 0 ? sizes[i] : sizes[i - 1] + 1;
+        groups.push({from: lower, to: sizes[Math.min(i + 1, sizes.length - 1)]});
+    }
+    return groups;
+}
+function mthUpdateAreaArrows() {
+    const groups = mthAreaGroups();
+    const fromField = document.getElementById('vacantAreaFrom');
+    const current = Number(fromField.value);
+    const hasValue = fromField.value !== '';
+    let index = !hasValue ? 0 : groups.findIndex(g => current >= g.from && current <= g.to);
+    if (index < 0) index = groups.findIndex(g => current < g.from);
+    if (index < 0) index = groups.length - 1;
+    const prev = document.getElementById('mthAreaPrev');
+    const next = document.getElementById('mthAreaNext');
+    if (prev) prev.disabled = groups.length < 2 || index <= 0;
+    if (next) next.disabled = groups.length < 2 || index >= groups.length - 1;
+}
+function mthStepArea(direction) {
+    const groups = mthAreaGroups();
+    if (!groups.length) return;
+    const field = document.getElementById('vacantAreaFrom');
+    const current = field.value === '' ? groups[0].from : Number(field.value);
+    let index = groups.findIndex(g => current >= g.from && current <= g.to);
+    if (index < 0) index = groups.findIndex(g => current < g.from);
+    if (index < 0) index = groups.length - 1;
+    const target = groups[index + direction];
+    if (!target) { mthUpdateAreaArrows(); return; }
+    field.value = target.from;
+    document.getElementById('vacantAreaTo').value = target.to;
+    mthAreaFilterApplied = true;
+    mthUpdateAreaArrows();
+    updateVacantReport();
+}
+function mthApplyAreaFilter() {
+    const f = mthReadAreaInputs();
+    if (!f.valid || f.from === null || f.to === null) {
+        alert('Enter a valid From and To area (From must not exceed To).');
+        return;
+    }
+    mthAreaFilterApplied = true;
+    mthUpdateAreaArrows();
+    updateVacantReport();
+}
+function mthClearAreaFilter() {
+    mthSuggestAreaRange();
+    updateVacantReport();
+}
+function mthReadAreaInputs() {
+    const fromText = document.getElementById('vacantAreaFrom')?.value ?? '';
+    const toText = document.getElementById('vacantAreaTo')?.value ?? '';
+    const from = fromText === '' ? null : Number(fromText);
+    const to = toText === '' ? null : Number(toText);
+    return {from, to, valid: (from === null || from >= 0) && (to === null || to >= 0) && (from === null || to === null || from <= to)};
+}
+function mthGetAreaFilter() {
+    const f = mthReadAreaInputs();
+    return {...f, active: mthAreaFilterApplied && f.valid,
+        from: mthAreaFilterApplied ? f.from : null,
+        to: mthAreaFilterApplied ? f.to : null};
+}
+
+function updateVacantReport() {
+    mthUpdateAreaArrows();
+    const p = getActiveProject();
+    const areaFilter = mthGetAreaFilter();
+    const allVacantPlots = (p.plots || []).filter(plot => String(plot.status || 'Vacant').trim().toLowerCase() === 'vacant');
+    const vacantPlots = allVacantPlots.filter(plot => areaFilter.valid &&
+        (areaFilter.from === null || Number(plot.area) >= areaFilter.from) &&
+        (areaFilter.to === null || Number(plot.area) <= areaFilter.to));
+    const rangeText = areaFilter.active ? `${areaFilter.from ?? 'Any'}–${areaFilter.to ?? 'Any'} SFT` : 'All areas';
+    document.getElementById('vacantReportSubtitle').textContent = 'VACANT PLOTS AVAILABILITY REPORT';
+    document.getElementById('mthVacantRangeHeading').textContent = areaFilter.active ? `VACANT PLOTS · ${rangeText}` : 'ALL VACANT PLOTS';
+    document.getElementById('mthVacantRangeCount').textContent = `${vacantPlots.length} PLOT${vacantPlots.length === 1 ? '' : 'S'} AVAILABLE | ${vacantPlots.reduce((sum, plot) => sum + Number(plot.area || 0), 0).toLocaleString('en-IN')} SFT TOTAL`;
+    document.getElementById('vacantAreaMatches').textContent = !mthReadAreaInputs().valid ? '⚠ Invalid range — edit before Apply' : areaFilter.active ? `${vacantPlots.length} matching vacant plots (of ${allVacantPlots.length})` : `${allVacantPlots.length} vacant plots · suggested range (click Apply)`;
+    const byArea = new Map();
+    vacantPlots.forEach(plot => { const area = Number(plot.area || 0); byArea.set(area, (byArea.get(area) || 0) + 1); });
+    document.getElementById('vacantAreaBreakdownSummary').textContent = `📐 Available by Area · ${vacantPlots.length} plots · ${vacantPlots.reduce((sum, plot) => sum + Number(plot.area || 0), 0).toLocaleString('en-IN')} SFT`;
+    document.getElementById('mthPrintAreaCounts').textContent = [...byArea].sort((a,b)=>a[0]-b[0]).map(([area,count])=>`${Number(area).toLocaleString('en-IN')} SFT — ${count} plot${count===1?'':'s'}`).join('  |  ') || 'No vacant plots';
+    const areaRows = document.getElementById('vacantAreaBreakdownRows');
+    areaRows.replaceChildren();
+    [...byArea].sort((a,b) => a[0] - b[0]).forEach(([area, count]) => {
+        const tr = document.createElement('tr');
+        const areaCell = document.createElement('td');
+        const countCell = document.createElement('td');
+        areaCell.textContent = Number(area).toLocaleString('en-IN');
+        countCell.textContent = count;
+        countCell.style.textAlign = 'right';
+        tr.append(areaCell, countCell);
+        areaRows.appendChild(tr);
+    });
     const bookedPlots = (p.plots || []).filter(plot => String(plot.status || '').trim().toLowerCase() === 'booked');
     const soldPlots = (p.plots || []).filter(plot => String(plot.status || '').trim().toLowerCase() === 'sold');
 
@@ -2941,15 +3103,44 @@ function updateVacantReport() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
-    let totalArea = 0, totalPrice = 0;
+    let totalArea = 0, totalPrice = 0, totalPlotCost = 0, totalRegnDoc = 0;
 
     if (vacantPlots.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 8px;">No vacant plots available for this project.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 8px;">No vacant plots match the selected area range.</td></tr>`;
     } else {
-        vacantPlots.forEach((plot, index) => {
+        // Group the ALL VACANT list into consecutive available-size ranges.
+        // Each plot appears exactly once; filtered reports retain their original rows.
+        const orderedPlots = areaFilter.active ? vacantPlots : [...vacantPlots].sort((a,b) => Number(a.area || 0) - Number(b.area || 0) || String(a.plotNo).localeCompare(String(b.plotNo), undefined, {numeric:true}));
+        const uniqueSizes = [...new Set(orderedPlots.map(plot => Number(plot.area || 0)))].sort((a,b) => a-b);
+        const groupBySize = new Map();
+        if (!areaFilter.active) {
+            for (let i = 0; i < uniqueSizes.length; i += 2) {
+                const pair = uniqueSizes.slice(i, i + 2);
+                const label = pair.length === 2 ? `${pair[0].toLocaleString('en-IN')}–${pair[1].toLocaleString('en-IN')} SFT` : `${pair[0].toLocaleString('en-IN')} SFT`;
+                pair.forEach(size => groupBySize.set(size, label));
+            }
+        }
+        let previousGroup = null;
+        orderedPlots.forEach((plot, index) => {
+            const group = groupBySize.get(Number(plot.area || 0));
+            if (group && group !== previousGroup) {
+                const groupPlots = orderedPlots.filter(item => groupBySize.get(Number(item.area || 0)) === group);
+                const groupArea = groupPlots.reduce((sum,item) => sum + Number(item.area || 0), 0);
+                const heading = document.createElement('tr');
+                heading.className = 'mth-vacant-group-heading';
+                const cell = document.createElement('td');
+                cell.colSpan = 10;
+                cell.style.cssText = 'background:#e8eef7;color:#1e3a5f;font-weight:700;padding:7px 10px;text-align:left;border-top:2px solid #94a3b8;';
+                cell.textContent = `${group}  ·  ${groupPlots.length} vacant plot${groupPlots.length === 1 ? '' : 's'}  ·  ${groupArea.toLocaleString('en-IN')} SFT`;
+                heading.appendChild(cell);
+                tbody.appendChild(heading);
+            }
+            previousGroup = group;
             const fin = calculatePlotFinancials(p, plot);
             totalArea += Number(plot.area || 0);
             totalPrice += fin.subtotal;
+            totalPlotCost += fin.baseCost + fin.cornerCost;
+            totalRegnDoc += fin.taxAndDoc;
 
             const tr = document.createElement("tr");
             tr.innerHTML = `
@@ -2959,6 +3150,8 @@ function updateVacantReport() {
                 <td style="text-align: right;">${Number(plot.area || 0).toLocaleString('en-IN')} SFT</td>
                 <td style="text-align: center;">${plot.corner ? 'YES' : 'NO'}</td>
                 <td style="text-align: right;">${formatCurrency(fin.effPrice)}</td>
+                <td style="text-align: right;">${formatCurrency(fin.baseCost + fin.cornerCost)}</td>
+                <td style="text-align: right;">${formatCurrency(fin.taxAndDoc)}</td>
                 <td style="text-align: right; font-weight: 600;">${formatCurrency(fin.subtotal)}</td>
                 <td style="text-align: left;">${plot.notes || '-'}</td>
             `;
@@ -2966,6 +3159,11 @@ function updateVacantReport() {
         });
     }
 
+    // Areas for project-wide totals; only the vacant card follows the selected range.
+    const sumArea = plots => plots.reduce((sum, plot) => sum + (Number(plot.area) || 0), 0).toLocaleString('en-IN') + ' SFT';
+    document.getElementById('mthTotalArea').textContent = sumArea(p.plots || []);
+    document.getElementById('mthSoldArea').textContent = sumArea(soldPlots);
+    document.getElementById('mthBookedArea').textContent = sumArea(bookedPlots);
     document.getElementById("vacantKpiPlotCount").textContent = vacantPlots.length;
     document.getElementById("vacantKpiBookedPlotCount").textContent = bookedPlots.length;
     document.getElementById("vacantKpiSoldPlotCount").textContent = soldPlots.length;
@@ -2973,6 +3171,8 @@ function updateVacantReport() {
     document.getElementById("vacantKpiTotalArea").textContent = `${totalArea.toLocaleString('en-IN')} SFT`;
     document.getElementById("vacantKpiTotalValue").textContent = formatCurrency(totalPrice);
     document.getElementById("vacantTfootTotalArea").textContent = `${totalArea.toLocaleString('en-IN')} SFT`;
+    document.getElementById("vacantTfootPlotCost").textContent = formatCurrency(totalPlotCost);
+    document.getElementById("vacantTfootRegnDoc").textContent = formatCurrency(totalRegnDoc);
     document.getElementById("vacantTfootTotalPrice").textContent = formatCurrency(totalPrice);
 }
 
