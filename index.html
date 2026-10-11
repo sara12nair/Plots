@@ -252,20 +252,22 @@
         }
 
         #printableVacantReport th, #printableVacantReport td { overflow-wrap:anywhere; }
-        #printableVacantReport th:nth-child(1) { width:4%; }
-        #printableVacantReport th:nth-child(2) { width:12%; }
-        #printableVacantReport th:nth-child(3) { width:4%; }
-        #printableVacantReport th:nth-child(4) { width:9%; }
-        #printableVacantReport th:nth-child(5) { width:6%; }
-        #printableVacantReport th:nth-child(6) { width:9%; }
-        #printableVacantReport th:nth-child(7) { width:13%; }
-        #printableVacantReport th:nth-child(8) { width:13%; }
-        #printableVacantReport th:nth-child(9) { width:14%; }
-        #printableVacantReport th:nth-child(10) { width:16%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(1) { width:4%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(2) { width:12%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(3) { width:4%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(4) { width:9%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(5) { width:6%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(6) { width:9%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(7) { width:13%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(8) { width:13%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(9) { width:14%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(10) { width:16%; }
         /* Keep combined plot numbers (e.g. 127/128) on one line. */
         #vacantReportTbody td:nth-child(2) { white-space:nowrap !important; overflow-wrap:normal !important; word-break:normal !important; }
         .mth-print-area-summary { margin:5px 0 8px; padding:6px 9px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; font-size:11px; }
         .mth-print-area-summary strong { color:#1e3a8a; }
+        #vacantCompactAreaSummary th, #vacantCompactAreaSummary td { padding: 2px 1px; border: 1px solid #cbd5e1; box-sizing: border-box; white-space: nowrap; }
+        @media print { #vacantCompactAreaSummary th, #vacantCompactAreaSummary td { font-size: 6.2pt !important; padding: 2px 1px !important; } }
         @media print { #mthPrintAreaSummary { display: none !important; } }
         .mth-range-banner { margin:5px 0 7px; padding:7px 10px; text-align:center; background:#eaf2ff; border:1.5px solid #1d4ed8; border-radius:5px; color:#173a7a; }
         .mth-range-banner .range-title { font-size:14px; font-weight:800; letter-spacing:.4px; }
@@ -923,7 +925,7 @@
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
             <strong>Madras Trading House</strong><!-- Final build 261010_1855 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261011_2321 IST</span>
+            <span>Plot Sales Monitor &amp; Team · Release 261011_2348 IST</span>
         </div>
     </div>
 
@@ -1117,6 +1119,15 @@
                             <div style="font-weight: 700; color: var(--text-main); font-size: 0.74rem;" id="vacantCoordinatorName">Sashi R Nair</div>
                             <div style="font-size: 0.6rem; color: var(--text-muted);" id="vacantCoordinatorTitle">Dy. Vice President</div>
                         </div>
+                    </div>
+                    <div id="vacantCompactAreaSummary" style="margin-top: 12px; break-inside: avoid; page-break-inside: avoid;">
+                        <div style="font-size: 0.72rem; font-weight: 700; color: var(--primary); margin-bottom: 5px;">VACANT PLOTS · AREA-WISE SUMMARY</div>
+                        <table id="vacantCompactAreaTable" style="width: 100%; border-collapse: collapse; font-size: 0.58rem; table-layout: fixed;">
+                            <colgroup><col style="width:8%"><col style="width:4.5%"><col style="width:8%"><col style="width:4.5%"><col style="width:8%"><col style="width:4.5%"><col style="width:8%"><col style="width:4.5%"><col style="width:8%"><col style="width:4.5%"><col style="width:8%"><col style="width:4.5%"><col style="width:8%"><col style="width:4.5%"><col style="width:8%"><col style="width:4.5%"></colgroup>
+                            <thead><tr><th>AREA</th><th>COUNT</th><th>AREA</th><th>COUNT</th><th>AREA</th><th>COUNT</th><th>AREA</th><th>COUNT</th><th>AREA</th><th>COUNT</th><th>AREA</th><th>COUNT</th><th>AREA</th><th>COUNT</th><th>AREA</th><th>COUNT</th></tr></thead>
+                            <tbody id="vacantCompactAreaRows"></tbody>
+                        </table>
+                        <div id="vacantCompactAreaTotal" style="text-align: right; font-size: 0.7rem; font-weight: 700; margin-top: 5px;"></div>
                     </div>
                 </div>
             </div>
@@ -3087,6 +3098,29 @@ function updateVacantReport() {
         tr.append(areaCell, countCell);
         areaRows.appendChild(tr);
     });
+    // Compact, eight-pair summary below the signature: fill down each column, then right.
+    const compactRows = document.getElementById('vacantCompactAreaRows');
+    if (compactRows) {
+        compactRows.replaceChildren();
+        const entries = [...byArea].sort((a, b) => a[0] - b[0]);
+        const rowsPerColumn = Math.ceil(entries.length / 8);
+        for (let i = 0; i < rowsPerColumn; i++) {
+            const tr = document.createElement('tr');
+            for (let j = 0; j < 8; j++) {
+                const pair = entries[j * rowsPerColumn + i];
+                const areaTd = document.createElement('td');
+                const countTd = document.createElement('td');
+                areaTd.textContent = pair ? Number(pair[0]).toLocaleString('en-IN') : '';
+                countTd.textContent = pair ? pair[1] : '';
+                areaTd.style.textAlign = 'right';
+                countTd.style.textAlign = 'center';
+                tr.append(areaTd, countTd);
+            }
+            compactRows.appendChild(tr);
+        }
+        document.getElementById('vacantCompactAreaTotal').textContent =
+            `TOTAL: ${vacantPlots.length.toLocaleString('en-IN')} PLOTS · ${vacantPlots.reduce((sum, plot) => sum + Number(plot.area || 0), 0).toLocaleString('en-IN')} SFT`;
+    }
     const bookedPlots = (p.plots || []).filter(plot => String(plot.status || '').trim().toLowerCase() === 'booked');
     const soldPlots = (p.plots || []).filter(plot => String(plot.status || '').trim().toLowerCase() === 'sold');
 
