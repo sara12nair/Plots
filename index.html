@@ -923,7 +923,7 @@
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
             <strong>Madras Trading House</strong><!-- Final build 261010_1855 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261010_1855 IST</span>
+            <span>Plot Sales Monitor &amp; Team · Release 261011_2321 IST</span>
         </div>
     </div>
 
@@ -3110,21 +3110,24 @@ function updateVacantReport() {
     } else {
         // Group the ALL VACANT list into consecutive available-size ranges.
         // Each plot appears exactly once; filtered reports retain their original rows.
-        const orderedPlots = areaFilter.active ? vacantPlots : [...vacantPlots].sort((a,b) => Number(a.area || 0) - Number(b.area || 0) || String(a.plotNo).localeCompare(String(b.plotNo), undefined, {numeric:true}));
-        const uniqueSizes = [...new Set(orderedPlots.map(plot => Number(plot.area || 0)))].sort((a,b) => a-b);
-        const groupBySize = new Map();
-        if (!areaFilter.active) {
-            for (let i = 0; i < uniqueSizes.length; i += 2) {
-                const pair = uniqueSizes.slice(i, i + 2);
-                const label = pair.length === 2 ? `${pair[0].toLocaleString('en-IN')}–${pair[1].toLocaleString('en-IN')} SFT` : `${pair[0].toLocaleString('en-IN')} SFT`;
-                pair.forEach(size => groupBySize.set(size, label));
-            }
-        }
-        let previousGroup = null;
+        const sizeSorted = [...vacantPlots].sort((a,b) => Number(a.area || 0) - Number(b.area || 0) || String(a.plotNo).localeCompare(String(b.plotNo), undefined, {numeric:true}));
+        const uniqueSizes = [...new Set(sizeSorted.map(plot => Number(plot.area || 0)))].sort((a,b) => a-b);
+        // Keep each exact plot size in its own group, then group by facing.
+        // This prevents 800 SFT plots being mixed into a 762–800 SFT range.
+        const groupBySize = new Map(uniqueSizes.map(size => [size, `${size.toLocaleString('en-IN')} SFT`]));
+        // Only the vacant-report display order changes: area range, facing, then numeric plot number.
+        const facingKey = plot => String(plot.facing || '').trim().toUpperCase();
+        const facingOrder = ['N', 'E', 'S', 'W'];
+        const facingRank = plot => { const key = facingKey(plot); const index = facingOrder.indexOf(key); return index < 0 ? facingOrder.length : index; };
+        const orderedPlots = [...sizeSorted].sort((a,b) => {
+            const areaA = Number(a.area || 0), areaB = Number(b.area || 0);
+            return areaA-areaB || facingRank(a)-facingRank(b) || facingKey(a).localeCompare(facingKey(b)) || String(a.plotNo).localeCompare(String(b.plotNo), undefined, {numeric:true});
+        });
+        let previousGroup = null, previousFacing = null;
         orderedPlots.forEach((plot, index) => {
-            const group = groupBySize.get(Number(plot.area || 0));
-            if (group && group !== previousGroup) {
-                const groupPlots = orderedPlots.filter(item => groupBySize.get(Number(item.area || 0)) === group);
+            const group = groupBySize.get(Number(plot.area || 0)) || (areaFilter.active ? rangeText : '');
+            if (group !== previousGroup) {
+                const groupPlots = orderedPlots.filter(item => (groupBySize.get(Number(item.area || 0)) || (areaFilter.active ? rangeText : '')) === group);
                 const groupArea = groupPlots.reduce((sum,item) => sum + Number(item.area || 0), 0);
                 const heading = document.createElement('tr');
                 heading.className = 'mth-vacant-group-heading';
@@ -3134,8 +3137,22 @@ function updateVacantReport() {
                 cell.textContent = `${group}  ·  ${groupPlots.length} vacant plot${groupPlots.length === 1 ? '' : 's'}  ·  ${groupArea.toLocaleString('en-IN')} SFT`;
                 heading.appendChild(cell);
                 tbody.appendChild(heading);
+                previousFacing = null;
+            }
+            const facing = facingKey(plot) || 'Unspecified';
+            if (group !== previousGroup || facing !== previousFacing) {
+                const facingPlots = orderedPlots.filter(item => (groupBySize.get(Number(item.area || 0)) || (areaFilter.active ? rangeText : '')) === group && (facingKey(item) || 'Unspecified') === facing);
+                const heading = document.createElement('tr');
+                heading.className = 'mth-vacant-facing-heading';
+                const cell = document.createElement('td');
+                cell.colSpan = 10;
+                cell.style.cssText = 'background:#f4f7fb;color:#24466d;font-weight:700;padding:4px 10px 4px 20px;text-align:left;';
+                cell.textContent = `${({N:'NORTH',E:'EAST',S:'SOUTH',W:'WEST'})[facing] || facing} FACING  ·  ${facingPlots.length} plot${facingPlots.length === 1 ? '' : 's'}  ·  ${facingPlots.reduce((sum,item) => sum + Number(item.area || 0), 0).toLocaleString('en-IN')} SFT`;
+                heading.appendChild(cell);
+                tbody.appendChild(heading);
             }
             previousGroup = group;
+            previousFacing = facing;
             const fin = calculatePlotFinancials(p, plot);
             totalArea += Number(plot.area || 0);
             totalPrice += fin.subtotal;
