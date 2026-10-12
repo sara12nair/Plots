@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Final 261010_1855 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261012_2226 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -921,11 +921,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Final build 261010_1855 IST">
+    <div class="app-brand-strip no-print" title="Release 261012_2226 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Final build 261010_1855 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261011_2348 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261012_2226 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261012_2226 IST</span>
         </div>
     </div>
 
@@ -1169,10 +1169,10 @@
                     </div>
                     <div class="form-group"><label id="docDateInputLabel">Quote Date</label><input type="date" id="docDateInput" onchange="renderReport()"></div>
                     <div class="form-group"><label>Buyer Name</label><input type="text" id="buyerName" value="" placeholder="Enter buyer name" oninput="renderReport()"></div>
-                    <div class="form-group"><label>Buyer Phone</label><input type="text" id="buyerPhone" value="" placeholder="Enter phone number" oninput="renderReport()"></div>
+                    <div class="form-group"><label>Buyer Phone</label><input type="text" id="buyerPhone" value="" inputmode="tel" maxlength="12" placeholder="XXXX-XXX-XXX" oninput="mthFormatBuyerPhone(this); renderReport()"></div>
                     <div class="form-group"><label>Buyer Email</label><input type="text" id="buyerEmail" value="" placeholder="Enter email address" oninput="renderReport()"></div>
                     <div class="form-group"><label>Postal Address</label><input type="text" id="buyerAddress" value="" placeholder="Enter postal address" oninput="renderReport()"></div>
-                    <div class="form-group" id="advanceInputContainer"><label>Advance Paid (₹)</label><input type="number" id="advancePaid" value="100000" oninput="renderReport()"></div>
+                    <div class="form-group" id="advanceInputContainer"><label id="advanceInputLabel">Advance Payable (₹)</label><input type="number" id="advancePaid" value="100000" oninput="renderReport()"></div>
                     <div class="form-group"><label>Coordinator Name</label><input type="text" id="coordinatorName" value="Sashi R Nair" oninput="renderReport(); updateVacantReport();"></div>
                     <div class="form-group"><label>Designation</label><input type="text" id="coordinatorTitle" value="Dy. Vice President" oninput="renderReport(); updateVacantReport();"></div>
                     <div class="form-group"><label>Scanned Signature</label><input type="file" id="sigUpload" accept="image/*" onchange="handleSigUpload(event)"></div>
@@ -1281,11 +1281,11 @@
                                         <td style="text-align: right; font-weight: 600;" id="rptGrandTotal">₹0</td>
                                     </tr>
                                     <tr id="rptRowLoan">
-                                        <td id="rptLoanLabel">Less: Estimated Eligible Loan Eligibility (70%):</td>
+                                        <td id="rptLoanLabel">Less: Estimated Loan Eligibility (70%):</td>
                                         <td style="text-align: right;" id="rptTotalLoan">₹0</td>
                                     </tr>
                                     <tr id="rptAdvancePaidRow">
-                                        <td id="rptAdvanceLabel">Booking Advance Paid / Payable:</td>
+                                        <td id="rptAdvanceLabel">Advance Payable:</td>
                                         <td style="text-align: right;" id="rptAdvancePaid">₹0</td>
                                     </tr>
                                     <tr class="highlight-total">
@@ -2567,10 +2567,17 @@ function deleteBankRow(idx) {
     autoSaveState();
 }
 
+function mthFormatBuyerPhone(input) {
+    const digits = input.value.replace(/\D/g, "").slice(0, 10);
+    input.value = digits.length > 7 ? `${digits.slice(0,4)}-${digits.slice(4,7)}-${digits.slice(7)}` : digits.length > 4 ? `${digits.slice(0,4)}-${digits.slice(4)}` : digits;
+}
+
 function toggleDocumentType() {
     const isQuote = document.getElementById("docTypeQuote") ? document.getElementById("docTypeQuote").checked : true;
     const advanceContainer = document.getElementById("advanceInputContainer");
-    if (advanceContainer) advanceContainer.style.display = isQuote ? "none" : "";
+    if (advanceContainer) advanceContainer.style.display = "";
+    const advanceLabel = document.getElementById("advanceInputLabel");
+    if (advanceLabel) advanceLabel.textContent = isQuote ? "Advance Payable (₹)" : "Advance Paid (₹)";
     renderReport();
 }
 
@@ -2898,7 +2905,8 @@ function renderReport() {
 
     document.getElementById("rptProjName").textContent = p.name || "PROJECT NAME";
     document.getElementById("rptBuyerName").textContent = document.getElementById("buyerName").value.trim() || "-";
-    document.getElementById("rptBuyerPhone").textContent = document.getElementById("buyerPhone").value.trim() || "-";
+    const buyerPhoneDigits = document.getElementById("buyerPhone").value.replace(/\D/g, "");
+    document.getElementById("rptBuyerPhone").textContent = buyerPhoneDigits.length === 10 ? `${buyerPhoneDigits.slice(0,4)}-${buyerPhoneDigits.slice(4,7)}-${buyerPhoneDigits.slice(7)}` : (document.getElementById("buyerPhone").value.trim() || "-");
     document.getElementById("rptBuyerEmail").textContent = document.getElementById("buyerEmail").value.trim() || "-";
     document.getElementById("rptBuyerAddress").textContent = document.getElementById("buyerAddress").value.trim() || "-";
     document.getElementById("rptCoordinatorName").textContent = document.getElementById("coordinatorName").value || "Sashi R Nair";
@@ -2948,17 +2956,20 @@ function renderReport() {
     document.getElementById("rptPlotCount").textContent = isQuote ? `Total Plots Selected: ${selectedPlots.length}` : `Total Plots Booked: ${selectedPlots.length}`;
     document.getElementById("rptTotalArea").textContent = `Total Area: ${totalAreaSum.toLocaleString()} SFT`;
 
-    const advance = isQuote ? 0 : (parseFloat(document.getElementById("advancePaid").value) || 0);
-    const balance = isSelfFund ? (grandTotal - advance) : (grandTotal - totalLoan - advance);
+    const advance = parseFloat(document.getElementById("advancePaid").value) || 0;
+    // A quotation advance is payable, not received: never subtract it as a payment.
+    const receivedAdvance = isQuote ? 0 : advance;
+    const balance = isSelfFund ? (grandTotal - receivedAdvance) : (grandTotal - totalLoan - receivedAdvance);
 
     document.getElementById("rptGrandTotal").textContent = formatCurrency(grandTotal);
     document.getElementById("rptTotalLoan").textContent = formatCurrency(totalLoan);
     
     const advanceRowElem = document.getElementById("rptAdvancePaidRow");
-    if (advanceRowElem) advanceRowElem.style.display = isQuote ? "none" : "";
+    if (advanceRowElem) advanceRowElem.style.display = "";
+    document.getElementById("rptAdvanceLabel").textContent = isQuote ? "Advance Payable (Not Yet Paid):" : "Less: Advance Paid:";
     document.getElementById("rptAdvancePaid").textContent = formatCurrency(advance);
     document.getElementById("rptBalancePayable").textContent = formatCurrency(balance);
-    document.getElementById("rptBalanceLabel").textContent = isQuote ? "Total Payable Amount:" : "Balance Payable:";
+    document.getElementById("rptBalanceLabel").textContent = isQuote ? "Estimated Buyer Contribution (Before Advance):" : "Balance Payable:";
 }
 
 function mthToggleAreaBreakdown() {
