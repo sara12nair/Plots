@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261015_222314 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261015_224021 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -915,17 +915,27 @@
 
         .mth-kpi-area { margin-top:4px;padding-top:4px;border-top:1px solid #cbd5e1;font-size:.7rem;font-weight:700;color:#475569;white-space:nowrap; }
         @media(max-width:520px) { .mth-summary-kpis {gap:3px;}.mth-summary-kpis .kpi-card{padding:4px 2px}.mth-summary-kpis .kpi-card .lbl{font-size:.51rem}.mth-kpi-area{font-size:.58rem} }
+
+        #registryPdfReport { display:none; }
+        @media print {
+            body.printing-registry > * { display:none !important; }
+            body.printing-registry > #registryPdfReport { display:block !important; font-size:10pt; padding:0; }
+            #registryPdfReport h1 { font-size:18pt; margin-bottom:8px; }
+            #registryPdfReport h2 { font-size:14pt; margin-bottom:8px; }
+            #registryPdfReport h3 { font-size:11pt; margin-top:14px; break-after:avoid; }
+            #registryPdfReport p { margin:6px 0; overflow-wrap:anywhere; line-height:1.5; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261015_222314 IST">
+    <div class="app-brand-strip no-print" title="Release 261015_224021 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261015_222314 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261015_222314 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261015_224021 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261015_224021 IST</span>
         </div>
     </div>
 
@@ -1001,12 +1011,13 @@
                         <div class="form-group" style="flex: 1; min-width: 160px; position: relative;">
                             <label>Paste Available Plots String (e.g. 1, 2, 3, 15...)</label>
                             <div style="display: flex; gap: 4px;">
-                                <input type="text" id="bulkPlots" placeholder="Paste registry string here" style="flex: 1;">
+                                <input type="text" id="bulkPlots" onkeydown="if(event.key === 'Enter' &amp;&amp; !event.isComposing) { event.preventDefault(); runRegistrySyncAudit(); }" placeholder="Paste registry string here" style="flex: 1;">
                                 <button type="button" class="btn btn-danger" onclick="clearBulkPlotsInput()" title="Clear Input" style="padding: 0 8px; min-height: 30px;">✕</button>
                             </div>
                         </div>
                         <div style="display: flex; gap: 4px; align-self: flex-end;">
-                            <button class="btn" style="background-color: #0284c7;" onclick="runRegistrySyncAudit()">Mark Vacant</button>
+                            <button class="btn" style="background-color: #0284c7;" onclick="runRegistrySyncAudit()">Review Registry</button>
+                            <button type="button" class="btn btn-outline" onclick="printRegistryReconciliation()">Registry PDF</button>
                         </div>
                     </div>
 
@@ -2422,6 +2433,7 @@ function populateProjectDropdown() {
 }
 
 function switchProject() {
+    clearRegistryReview();
     const select = document.getElementById("projectSelect");
     if (select.value === "__archives__") {
         openArchiveProjects();
@@ -2436,6 +2448,7 @@ function switchProject() {
 }
 
 function loadProjectToUI() {
+    if (registryReviewProject !== getActiveProject()) clearRegistryReview();
     const p = getActiveProject();
     document.getElementById("projName").value = p.name || "";
     document.getElementById("priceSft").value = p.priceSft || 0;
@@ -2789,6 +2802,42 @@ function deletePlot(idx) {
     autoSaveState();
 }
 
+let registryReviewProject = null;
+let registryReviewReport = null;
+let registryReviewSnapshot = null;
+function clearRegistryReview() {
+    const input = document.getElementById('bulkPlots');
+    if (input) input.value = '';
+    pendingReconPayload = null;
+    registryReviewProject = null;
+    registryReviewReport = null;
+    registryReviewSnapshot = null;
+    closeReconciliationModal();
+}
+function printRegistryReconciliation() {
+    const r = registryReviewReport;
+    if (!r || registryReviewProject !== getActiveProject()) {
+        alert('Paste the available plots string and click Review Registry first.'); return;
+    }
+    let report = document.getElementById('registryPdfReport');
+    if (!report) { report = document.createElement('section'); report.id = 'registryPdfReport'; document.body.appendChild(report); }
+    const list = (title, values) => `<h3>${title} (${values.length})</h3><p>${values.length ? values.map(escapeHtml).join(', ') : 'None'}</p>`;
+    report.innerHTML = `<h1>Registry Reconciliation</h1><h2>${escapeHtml(r.project)}</h2>
+        <p>Reviewed: ${escapeHtml(new Date(r.at).toLocaleString('en-IN', {timeZone:'Asia/Kolkata'}))} IST</p>
+        <p><strong>${r.applied ? 'Changes applied' : 'Review only — changes not applied'}</strong></p>
+        <h3>Pasted available plots string</h3><p>${escapeHtml(r.rawInput)}</p>
+        ${list('Vacant → Booked: absent from available string', r.newlyBooked)}
+        ${list('Already Booked: absent from available string', r.criticalBooked)}
+        ${list('Sold plots in inventory (unchanged)', r.soldPlotsList)}
+        ${list('Warning: Sold plots present in available string', r.criticalErrors)}
+        <p>Reconciliation only changes the listed Vacant plots to Booked. Existing Booked and Sold statuses stay unchanged.</p>`;
+    const title = document.title;
+    document.title = 'Registry Reconciliation - ' + r.project;
+    document.body.classList.add('printing-registry');
+    window.addEventListener('afterprint', () => { document.body.classList.remove('printing-registry'); document.title = title; }, {once:true});
+    window.print();
+}
+
 function runRegistrySyncAudit() {
     let rawInput = document.getElementById("bulkPlots").value.trim();
     if (!rawInput) {
@@ -2810,6 +2859,7 @@ function runRegistrySyncAudit() {
 
     const newlyBooked = [];
     const criticalBooked = [];
+    const criticalErrors = [];
     const soldPlotsList = [];
 
     p.plots.forEach(plot => {
@@ -2833,7 +2883,14 @@ function runRegistrySyncAudit() {
         }
     });
 
-    pendingReconPayload = { newlyBooked, returnedToVacant: [], criticalErrors: [], criticalBooked };
+    if (!rawTokens.length) { alert('No plot numbers found.'); return; }
+    pendingReconPayload = { newlyBooked, returnedToVacant: [], criticalErrors, criticalBooked };
+    registryReviewProject = p;
+    registryReviewSnapshot = JSON.stringify(p.plots.map(plot => [plot.plotNo, plot.status || 'Vacant']));
+    registryReviewReport = { project: p.name, at: new Date().toISOString(), rawInput,
+        newlyBooked: [...newlyBooked], criticalBooked: [...criticalBooked],
+        soldPlotsList: [...soldPlotsList], criticalErrors: [...criticalErrors], applied: false };
+    document.getElementById('bulkPlots').value = '';
 
     const container = document.getElementById("reconciliationModalContainer");
     container.innerHTML = `
@@ -2847,18 +2904,19 @@ function runRegistrySyncAudit() {
                     <p style="color: var(--text-muted);">Reviewing changes derived from the parsed vacant registry string:</p>
                     <div class="audit-section" style="border-left: 4px solid var(--success);">
                         <h4 style="color: var(--success);">🟢 Newly Booked (${newlyBooked.length})</h4>
-                        <div class="audit-list">${newlyBooked.length > 0 ? newlyBooked.join(', ') : 'None'}</div>
+                        <div class="audit-list">${newlyBooked.length > 0 ? newlyBooked.map(escapeHtml).join(', ') : 'None'}</div>
                     </div>
                     <div class="audit-section" style="border-left: 4px solid #f59e0b;">
                         <h4 style="color: #f59e0b;">🟠 Booked Plots (${criticalBooked.length})</h4>
-                        <div class="audit-list">${criticalBooked.length > 0 ? criticalBooked.join(', ') + ' (Marked as Booked, but missing from pasted string)' : 'None'}</div>
+                        <div class="audit-list">${criticalBooked.length > 0 ? criticalBooked.map(escapeHtml).join(', ') + ' (Marked as Booked, but missing from pasted string)' : 'None'}</div>
                     </div>
                     <div class="audit-section" style="border-left: 4px solid var(--danger);">
                         <h4 style="color: var(--danger);">🔴 Sold Plots (${soldPlotsList.length})</h4>
-                        <div class="audit-list">${soldPlotsList.length > 0 ? soldPlotsList.join(', ') : 'None'}</div>
+                        <div class="audit-list">${soldPlotsList.length > 0 ? soldPlotsList.map(escapeHtml).join(', ') : 'None'}</div>
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="printRegistryReconciliation()">Print / Save PDF</button>
                     <button class="btn btn-outline" onclick="closeReconciliationModal()">Cancel</button>
                     <button class="btn btn-success" onclick="applyReconciliation()">Confirm & Apply Changes</button>
                 </div>
@@ -2906,6 +2964,11 @@ let pendingReconPayload = null;
 function applyReconciliation() {
     if (!pendingReconPayload) return;
     const p = getActiveProject();
+    if (p !== registryReviewProject || JSON.stringify(p.plots.map(plot => [plot.plotNo, plot.status || 'Vacant'])) !== registryReviewSnapshot) {
+        clearRegistryReview();
+        alert('The project or inventory changed. Paste the registry again for a fresh review.');
+        return;
+    }
 
     p.plots.forEach(plot => {
         const plotNoStr = String(plot.plotNo).trim();
@@ -2917,6 +2980,8 @@ function applyReconciliation() {
     renderReport();
     updateVacantReport();
     autoSaveState();
+    registryReviewReport.applied = true;
+    pendingReconPayload = null;
     closeReconciliationModal();
     document.getElementById("bulkPlots").value = "";
     alert("Reconciliation completed successfully! Database updated.");
