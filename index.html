@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261012_2226 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261015_222314 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -921,11 +921,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261012_2226 IST">
+    <div class="app-brand-strip no-print" title="Release 261015_222314 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261012_2226 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261012_2226 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261015_222314 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261015_222314 IST</span>
         </div>
     </div>
 
@@ -986,6 +986,7 @@
 
                 <div class="toolbar no-print" style="margin:6px 0;align-items:end" id="vacantAreaFilterBar">
                     <strong style="font-size:.8rem">📐 Vacant plots by area</strong>
+                    <button type="button" id="mthGroupingToggle" class="btn btn-outline" onclick="mthTogglePlotGrouping()" aria-pressed="false">Group by facing</button>
                     <button type="button" id="mthAreaPrev" class="btn btn-outline" onclick="mthStepArea(-1)" title="Previous available plot size" aria-label="Previous available plot size">◀</button>
                     <div class="form-group"><label for="vacantAreaFrom">From (SFT)</label><input id="vacantAreaFrom" type="number" min="0" step="1" placeholder="e.g. 600" style="width:100px" oninput="mthAreaFromChanged()"></div>
                     <div class="form-group"><label for="vacantAreaTo">To (SFT)</label><input id="vacantAreaTo" type="number" min="0" step="1" placeholder="e.g. 700" style="width:100px" oninput="mthAreaToChanged()"></div>
@@ -2653,11 +2654,13 @@ function renderInventoryTable() {
     p.plots.forEach((plot, idx) => {
         const fin = calculatePlotFinancials(p, plot);
         const tr = document.createElement("tr");
-        const currentStatus = plot.status || 'Vacant';
+        const draft = inventoryStatusDrafts.get(plot);
+        const currentStatus = draft ? draft.next : (plot.status || 'Vacant');
         tr.className = `row-${currentStatus.toLowerCase()}`;
 
         tr.innerHTML = `
-            <td><button class="status-btn status-btn-${currentStatus.toLowerCase()}" onclick="cyclePlotStatus(${idx})">${currentStatus}</button></td>
+            <td><button type="button" class="status-btn status-btn-${currentStatus.toLowerCase()}" title="Click to stage a status change; then Save or Cancel" onclick="cyclePlotStatus(${idx})">${currentStatus}${draft ? ' *' : ''}</button>
+                ${draft ? `<div style="font-size:.65rem;white-space:nowrap">Unsaved</div><button type="button" class="btn" style="padding:2px 5px" onclick="savePlotStatus(${idx})">Save</button> <button type="button" class="btn btn-secondary" style="padding:2px 5px" onclick="cancelPlotStatus(${idx})">Cancel</button>` : ''}${renderPlotStatusHistory(plot)}</td>
             <td><input type="text" value="${plot.plotNo}" style="width: 100%;" oninput="updatePlotField(${idx}, 'plotNo', this.value)"></td>
             <td><input type="text" value="${plot.facing}" style="width: 100%;" oninput="updatePlotField(${idx}, 'facing', this.value)"></td>
             <td><input type="number" value="${plot.area}" style="width: 100%;" oninput="getActiveProject().plots[${idx}].area = parseFloat(this.value) || 0; renderReport(); updateVacantReport(); autoSaveState();"></td>
@@ -2671,12 +2674,69 @@ function renderInventoryTable() {
     });
 }
 
+// Store committed transitions with UTC instants; always display them in IST.
+function recordPlotStatusChange(plot, next, source) {
+    const previous = plot.status || 'Vacant';
+    if (previous === next) return false;
+    if (!Array.isArray(plot.statusHistory)) plot.statusHistory = [];
+    plot.statusHistory.push({ from: previous, to: next, at: new Date().toISOString(), source });
+    plot.status = next;
+    return true;
+}
+
+function renderPlotStatusHistory(plot) {
+    const history = Array.isArray(plot.statusHistory) ? plot.statusHistory : [];
+    const entries = history.slice().reverse().map(entry => {
+        const date = new Date(entry.at);
+        const stamp = Number.isNaN(date.getTime()) ? 'Time unavailable' :
+            date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit',
+                month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                second: '2-digit', hour12: true }) + ' IST';
+        return `<li style="margin:5px 0">${escapeHtml(entry.from)} → ${escapeHtml(entry.to)}<br>${escapeHtml(stamp)}<br><span style="color:var(--text-muted)">${escapeHtml(entry.source || 'Inventory Save')}</span></li>`;
+    }).join('');
+    return `<details class="no-print" style="margin-top:5px;font-size:.65rem;min-width:100px"><summary style="cursor:pointer">History (${history.length})</summary><div style="max-height:180px;overflow:auto;min-width:170px;white-space:normal">${history.length ? `<ol style="padding-left:16px">${entries}</ol>` : '<p>No status changes recorded yet. History starts with this release.</p>'}</div></details>`;
+}
+
+// UI-only drafts never enter appData, local backups, exports or Firebase.
+// Object identity keeps drafts attached to their plot after row deletion/reordering.
+const inventoryStatusDrafts = new WeakMap();
 function cyclePlotStatus(idx) {
     const plot = getActiveProject().plots[idx];
-    if (plot.status === 'Vacant') plot.status = 'Booked';
-    else if (plot.status === 'Booked') plot.status = 'Sold';
-    else plot.status = 'Vacant';
+    if (!plot) return;
+    const saved = plot.status || 'Vacant';
+    const draft = inventoryStatusDrafts.get(plot);
+    const current = draft ? draft.next : saved;
+    const statuses = ['Vacant', 'Booked', 'Sold'];
+    const next = statuses[(statuses.indexOf(current) + 1) % statuses.length];
+    const original = draft ? draft.original : saved;
+    if (next === original) inventoryStatusDrafts.delete(plot);
+    else inventoryStatusDrafts.set(plot, { original, next });
+    renderInventoryTable();
+}
 
+function cancelPlotStatus(idx) {
+    const plot = getActiveProject().plots[idx];
+    if (plot) inventoryStatusDrafts.delete(plot);
+    renderInventoryTable();
+}
+
+function savePlotStatus(idx) {
+    const plot = getActiveProject().plots[idx];
+    if (!plot) return;
+    const draft = inventoryStatusDrafts.get(plot);
+    if (!draft) return;
+    // A registry reconciliation or other update must never be overwritten silently.
+    if ((plot.status || 'Vacant') !== draft.original) {
+        inventoryStatusDrafts.delete(plot);
+        alert('This plot status changed since you started editing. Review the current status and try again.');
+        renderInventoryTable();
+        return;
+    }
+    const reversal = draft.original === 'Sold' ||
+        (draft.original === 'Booked' && draft.next === 'Vacant');
+    if (!confirm(`Save plot ${plot.plotNo}: ${draft.original} → ${draft.next}?${reversal ? ' This reverses its saved status.' : ''}${draft.next === 'Vacant' ? ' This makes it available for booking again.' : ''}`)) return;
+    recordPlotStatusChange(plot, draft.next, 'Inventory Save');
+    inventoryStatusDrafts.delete(plot);
     renderInventoryTable();
     populateMultiPlotSelect();
     renderReport();
@@ -2849,7 +2909,7 @@ function applyReconciliation() {
 
     p.plots.forEach(plot => {
         const plotNoStr = String(plot.plotNo).trim();
-        if (pendingReconPayload.newlyBooked.includes(plotNoStr)) plot.status = 'Booked';
+        if (pendingReconPayload.newlyBooked.includes(plotNoStr)) recordPlotStatusChange(plot, 'Booked', 'Registry reconciliation');
     });
 
     renderInventoryTable();
@@ -3080,6 +3140,30 @@ function mthGetAreaFilter() {
         to: mthAreaFilterApplied ? f.to : null};
 }
 
+// Display-only grouping; never reorder the stored inventory or save drafts.
+let mthPlotGrouping = 'area';
+function mthTogglePlotGrouping() {
+    mthPlotGrouping = mthPlotGrouping === 'area' ? 'facing' : 'area';
+    const button = document.getElementById('mthGroupingToggle');
+    button.textContent = mthPlotGrouping === 'facing' ? 'Group by area' : 'Group by facing';
+    button.setAttribute('aria-pressed', String(mthPlotGrouping === 'facing'));
+    updateVacantReport();
+}
+function mthFacingKey(plot) {
+    const key = String(plot.facing || '').trim().toUpperCase();
+    return ({N:'NORTH',E:'EAST',S:'SOUTH',W:'WEST',NE:'NORTH EAST',NW:'NORTH WEST',SE:'SOUTH EAST',SW:'SOUTH WEST'})[key] || key || 'UNSPECIFIED';
+}
+function mthOrderVacantPlots(plots) {
+    const order = ['NORTH','EAST','SOUTH','WEST','NORTH EAST','NORTH WEST','SOUTH EAST','SOUTH WEST'];
+    const rank = plot => { const i = order.indexOf(mthFacingKey(plot)); return i < 0 ? order.length : i; };
+    return [...plots].sort((a,b) => {
+        const area = Number(a.area || 0) - Number(b.area || 0);
+        const facing = rank(a)-rank(b) || mthFacingKey(a).localeCompare(mthFacingKey(b));
+        return (mthPlotGrouping === 'facing' ? facing || area : area || facing) ||
+            String(a.plotNo).localeCompare(String(b.plotNo), undefined, {numeric:true});
+    });
+}
+
 function updateVacantReport() {
     mthUpdateAreaArrows();
     const p = getActiveProject();
@@ -3153,26 +3237,17 @@ function updateVacantReport() {
     if (vacantPlots.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 8px;">No vacant plots match the selected area range.</td></tr>`;
     } else {
-        // Group the ALL VACANT list into consecutive available-size ranges.
-        // Each plot appears exactly once; filtered reports retain their original rows.
-        const sizeSorted = [...vacantPlots].sort((a,b) => Number(a.area || 0) - Number(b.area || 0) || String(a.plotNo).localeCompare(String(b.plotNo), undefined, {numeric:true}));
-        const uniqueSizes = [...new Set(sizeSorted.map(plot => Number(plot.area || 0)))].sort((a,b) => a-b);
-        // Keep each exact plot size in its own group, then group by facing.
-        // This prevents 800 SFT plots being mixed into a 762–800 SFT range.
-        const groupBySize = new Map(uniqueSizes.map(size => [size, `${size.toLocaleString('en-IN')} SFT`]));
-        // Only the vacant-report display order changes: area range, facing, then numeric plot number.
-        const facingKey = plot => String(plot.facing || '').trim().toUpperCase();
-        const facingOrder = ['N', 'E', 'S', 'W'];
-        const facingRank = plot => { const key = facingKey(plot); const index = facingOrder.indexOf(key); return index < 0 ? facingOrder.length : index; };
-        const orderedPlots = [...sizeSorted].sort((a,b) => {
-            const areaA = Number(a.area || 0), areaB = Number(b.area || 0);
-            return areaA-areaB || facingRank(a)-facingRank(b) || facingKey(a).localeCompare(facingKey(b)) || String(a.plotNo).localeCompare(String(b.plotNo), undefined, {numeric:true});
-        });
+        const orderedPlots = mthOrderVacantPlots(vacantPlots);
+        const facingKey = mthFacingKey;
+        const areaLabel = plot => `${Number(plot.area || 0).toLocaleString('en-IN')} SFT`;
+        const facingLabel = plot => `${facingKey(plot)} FACING`;
+        const primaryGroup = mthPlotGrouping === 'facing' ? facingLabel : areaLabel;
+        const secondaryGroup = mthPlotGrouping === 'facing' ? areaLabel : facingLabel;
         let previousGroup = null, previousFacing = null;
         orderedPlots.forEach((plot, index) => {
-            const group = groupBySize.get(Number(plot.area || 0)) || (areaFilter.active ? rangeText : '');
+            const group = primaryGroup(plot);
             if (group !== previousGroup) {
-                const groupPlots = orderedPlots.filter(item => (groupBySize.get(Number(item.area || 0)) || (areaFilter.active ? rangeText : '')) === group);
+                const groupPlots = orderedPlots.filter(item => primaryGroup(item) === group);
                 const groupArea = groupPlots.reduce((sum,item) => sum + Number(item.area || 0), 0);
                 const heading = document.createElement('tr');
                 heading.className = 'mth-vacant-group-heading';
@@ -3184,15 +3259,15 @@ function updateVacantReport() {
                 tbody.appendChild(heading);
                 previousFacing = null;
             }
-            const facing = facingKey(plot) || 'Unspecified';
+            const facing = secondaryGroup(plot);
             if (group !== previousGroup || facing !== previousFacing) {
-                const facingPlots = orderedPlots.filter(item => (groupBySize.get(Number(item.area || 0)) || (areaFilter.active ? rangeText : '')) === group && (facingKey(item) || 'Unspecified') === facing);
+                const facingPlots = orderedPlots.filter(item => primaryGroup(item) === group && secondaryGroup(item) === facing);
                 const heading = document.createElement('tr');
                 heading.className = 'mth-vacant-facing-heading';
                 const cell = document.createElement('td');
                 cell.colSpan = 10;
                 cell.style.cssText = 'background:#f4f7fb;color:#24466d;font-weight:700;padding:4px 10px 4px 20px;text-align:left;';
-                cell.textContent = `${({N:'NORTH',E:'EAST',S:'SOUTH',W:'WEST'})[facing] || facing} FACING  ·  ${facingPlots.length} plot${facingPlots.length === 1 ? '' : 's'}  ·  ${facingPlots.reduce((sum,item) => sum + Number(item.area || 0), 0).toLocaleString('en-IN')} SFT`;
+                cell.textContent = `${facing}  ·  ${facingPlots.length} plot${facingPlots.length === 1 ? '' : 's'}  ·  ${facingPlots.reduce((sum,item) => sum + Number(item.area || 0), 0).toLocaleString('en-IN')} SFT`;
                 heading.appendChild(cell);
                 tbody.appendChild(heading);
             }
@@ -4367,9 +4442,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // cloud in a previous session, before we start listening for live
     // updates - otherwise a stale cloud snapshot could overwrite it.
     retryPendingSync();
+    // Render any recovered local inventory before the cloud listener starts.
+    populateProjectDropdown();
+    loadProjectToUI();
 
     db.ref('trackerState').on('value', (snapshot) => {
-        if (isLocalSaving) return;
+        // Keep restored or newly saved local edits until Firebase confirms upload.
+        if (isLocalSaving || localStorage.getItem(LOCAL_BACKUP_KEYS.tracker)) return;
         const data = snapshot.val();
         if (data && data.projects) {
             appData = data;
