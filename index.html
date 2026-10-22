@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261015_224021 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261022_2224 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -931,11 +931,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261015_224021 IST">
+    <div class="app-brand-strip no-print" title="Release 261022_2224 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261015_224021 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261015_224021 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261022_2224 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261022_2224 IST</span>
         </div>
     </div>
 
@@ -1184,10 +1184,12 @@
                     <div class="form-group"><label>Buyer Phone</label><input type="text" id="buyerPhone" value="" inputmode="tel" maxlength="12" placeholder="XXXX-XXX-XXX" oninput="mthFormatBuyerPhone(this); renderReport()"></div>
                     <div class="form-group"><label>Buyer Email</label><input type="text" id="buyerEmail" value="" placeholder="Enter email address" oninput="renderReport()"></div>
                     <div class="form-group"><label>Postal Address</label><input type="text" id="buyerAddress" value="" placeholder="Enter postal address" oninput="renderReport()"></div>
-                    <div class="form-group" id="advanceInputContainer"><label id="advanceInputLabel">Advance Payable (₹)</label><input type="number" id="advancePaid" value="100000" oninput="renderReport()"></div>
+                    <div class="form-group" id="advanceInputContainer"><label id="advanceInputLabel">Advance Payable (₹)</label><input type="number" id="advancePaid" value="0" min="0" oninput="mthUpdateBookingAdvance(this)"></div>
                     <div class="form-group"><label>Coordinator Name</label><input type="text" id="coordinatorName" value="Sashi R Nair" oninput="renderReport(); updateVacantReport();"></div>
                     <div class="form-group"><label>Designation</label><input type="text" id="coordinatorTitle" value="Dy. Vice President" oninput="renderReport(); updateVacantReport();"></div>
                     <div class="form-group"><label>Scanned Signature</label><input type="file" id="sigUpload" accept="image/*" onchange="handleSigUpload(event)"></div>
+                    <div class="form-group" style="max-width: 172px;"><label for="bookingOfferSft">Offer / SFT (₹)</label><input type="number" id="bookingOfferSft" min="0" step="0.01" inputmode="decimal" oninput="updateBookingOffer(this)"></div>
+                    <div class="form-group loan-field" style="max-width: 190px;"><label for="bankLoanOverride">Bank Loan Override (₹)</label><input type="number" id="bankLoanOverride" min="0" step="1" inputmode="decimal" placeholder="Blank = calculated" title="Total loan amount for the selected plots. Leave blank to use the calculated eligibility." oninput="mthUpdateLoanOverride(this)"></div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 8px;">
@@ -2037,6 +2039,7 @@ function renderTeamGenealogyUI() {
 }
 
 function switchMainAppView(viewKey) {
+    mthResetCostSheetEntries();
     document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.app-view-container').forEach(view => view.classList.remove('active'));
 
@@ -2050,6 +2053,7 @@ function switchMainAppView(viewKey) {
 }
 
 function switchTeamTab(sectionId, evt) {
+    mthResetCostSheetEntries();
     document.querySelectorAll('#viewTeamPortal .team-content-section').forEach(sec => sec.classList.remove('active'));
     document.querySelectorAll('#viewTeamPortal .team-tab-btn').forEach(btn => btn.classList.remove('active'));
     
@@ -2058,6 +2062,7 @@ function switchTeamTab(sectionId, evt) {
 }
 
 function switchTrackerTab(tabKey) {
+    mthResetCostSheetEntries();
     document.querySelectorAll('#viewPlotTracker .tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('#viewPlotTracker .tab-content').forEach(content => content.classList.remove('active'));
 
@@ -2433,6 +2438,7 @@ function populateProjectDropdown() {
 }
 
 function switchProject() {
+    mthResetCostSheetEntries();
     clearRegistryReview();
     const select = document.getElementById("projectSelect");
     if (select.value === "__archives__") {
@@ -2453,6 +2459,7 @@ function loadProjectToUI() {
     document.getElementById("projName").value = p.name || "";
     document.getElementById("priceSft").value = p.priceSft || 0;
     document.getElementById("offerSft").value = p.offerSft !== undefined ? p.offerSft : 25;
+    document.getElementById("bookingOfferSft").value = document.getElementById("offerSft").value;
     document.getElementById("cornerSft").value = p.cornerSft || 0;
     document.getElementById("guideValue").value = p.guideValue || 0;
     document.getElementById("taxPct").value = p.taxPct || 0;
@@ -2544,6 +2551,7 @@ function updateBankField(idx, field, val) {
 }
 
 function switchSelectedBank() {
+    mthResetCostSheetEntries();
     const p = getActiveProject();
     const selectElem = document.getElementById("selectedBankSelect");
     if (selectElem) {
@@ -2587,6 +2595,7 @@ function mthFormatBuyerPhone(input) {
 }
 
 function toggleDocumentType() {
+    mthResetCostSheetEntries();
     const isQuote = document.getElementById("docTypeQuote") ? document.getElementById("docTypeQuote").checked : true;
     const advanceContainer = document.getElementById("advanceInputContainer");
     if (advanceContainer) advanceContainer.style.display = "";
@@ -2596,6 +2605,7 @@ function toggleDocumentType() {
 }
 
 function togglePaymentMode(shouldSave = true) {
+    if (shouldSave) mthResetCostSheetEntries();
     const isSelfFund = document.getElementById("payModeSelfFund").checked;
     const p = getActiveProject();
     p.paymentMode = isSelfFund ? "self_fund" : "loan";
@@ -2617,11 +2627,33 @@ function togglePaymentMode(shouldSave = true) {
     if (shouldSave) autoSaveState();
 }
 
+// Temporary booking-page amounts; project defaults remain unchanged.
+function updateBookingOffer(input) {
+    const value = Number(input.value);
+    if (input.value !== "" && (!Number.isFinite(value) || value < 0)) input.value = "";
+    // This form uses a temporary offer; project settings and inventory stay untouched.
+    renderReport();
+}
+function mthUpdateBookingAdvance(input) {
+    const value = Number(input.value);
+    if (input.value !== "" && (!Number.isFinite(value) || value < 0)) input.value = "0";
+    renderReport();
+}
+function mthBookingProject() {
+    const project = getActiveProject();
+    const input = document.getElementById("bookingOfferSft");
+    const raw = input ? input.value.trim() : "";
+    const offer = raw !== "" && Number.isFinite(Number(raw)) && Number(raw) >= 0
+        ? Number(raw) : project.offerSft !== undefined ? project.offerSft : 25;
+    return { ...project, offerSft: offer };
+}
+
 function updateData() {
     const p = getActiveProject();
     p.name = document.getElementById("projName").value;
     p.priceSft = parseFloat(document.getElementById("priceSft").value) || 0;
     p.offerSft = parseFloat(document.getElementById("offerSft").value) || 0;
+    if (document.activeElement !== document.getElementById("bookingOfferSft")) document.getElementById("bookingOfferSft").value = p.offerSft;
     p.cornerSft = parseFloat(document.getElementById("cornerSft").value) || 0;
     p.guideValue = parseFloat(document.getElementById("guideValue").value) || 0;
     p.taxPct = parseFloat(document.getElementById("taxPct").value) || 0;
@@ -3005,8 +3037,63 @@ function populateMultiPlotSelect() {
     }
 }
 
+// Manual loan is scoped to this buyer, bank and plot selection, never bank settings.
+let mthLoanOverrideContext = null;
+function mthResetCostSheetEntries() {
+    const loan = document.getElementById("bankLoanOverride");
+    const offer = document.getElementById("bookingOfferSft");
+    const advance = document.getElementById("advancePaid");
+    if (!loan || !offer || !advance) return;
+    const project = getActiveProject();
+    const defaultOffer = project.offerSft !== undefined ? project.offerSft : 25;
+    const changed = loan.value !== "" || offer.value !== String(defaultOffer) || Number(advance.value) !== 0;
+    loan.value = "";
+    offer.value = String(defaultOffer);
+    advance.value = "0";
+    mthLoanOverrideContext = null;
+    if (changed) renderReport();
+}
+// Manual cost-sheet amounts belong only to the current uninterrupted visit.
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") mthResetCostSheetEntries();
+});
+window.addEventListener("pagehide", mthResetCostSheetEntries);
+window.addEventListener("pageshow", mthResetCostSheetEntries);
+function mthUpdateLoanOverride(input) {
+    if (input.value !== "" && (!Number.isFinite(Number(input.value)) || Number(input.value) < 0)) input.value = "";
+    renderReport();
+}
+function mthBookingLoanAmounts(p, plots, bank, isSelfFund) {
+    const input = document.getElementById("bankLoanOverride");
+    const key = JSON.stringify([appData.activeProjectIndex, p.name, p.selectedBankIndex,
+        bank.financier, bank.bankerSft, bank.loanPct, isSelfFund,
+        plots.map(plot => [String(plot.plotNo), plot.area]).sort((a,b) => a[0].localeCompare(b[0])),
+        document.getElementById("buyerName").value.trim(),
+        document.getElementById("buyerPhone").value.replace(/\D/g, "")]);
+    if (mthLoanOverrideContext !== null && mthLoanOverrideContext !== key) input.value = "";
+    mthLoanOverrideContext = key;
+    const calculated = plots.map(plot => calculatePlotFinancials(p, plot).loanEligibility);
+    const calculatedTotal = calculated.reduce((sum, value) => sum + value, 0);
+    input.disabled = isSelfFund || plots.length === 0;
+    input.placeholder = plots.length ? "Auto: " + formatCurrency(calculatedTotal) : "Select a plot first";
+    const raw = input.value.trim();
+    const manual = !input.disabled && raw !== "" && Number.isFinite(Number(raw)) && Number(raw) >= 0;
+    const total = isSelfFund ? 0 : manual ? Number(raw) : calculatedTotal;
+    let allocated = 0;
+    const areaTotal = plots.reduce((sum, plot) => sum + Number(plot.area || 0), 0);
+    const amounts = calculated.map((value, index) => {
+        if (!manual) return value;
+        // Allocate one total override across rows; last row absorbs rounding.
+        const weight = calculatedTotal > 0 ? value / calculatedTotal : areaTotal > 0 ? Number(plots[index].area || 0) / areaTotal : 1 / plots.length;
+        const amount = index === plots.length - 1 ? total - allocated : Math.round(total * weight * 100) / 100;
+        allocated += amount;
+        return amount;
+    });
+    return { total, amounts, manual };
+}
+
 function renderReport() {
-    const p = getActiveProject();
+    const p = mthBookingProject();
     const activeBank = getActiveBank();
     const isSelfFund = (p.paymentMode === "self_fund" || p.paymentMode === "cash");
     const isQuote = document.getElementById("docTypeQuote") ? document.getElementById("docTypeQuote").checked : true;
@@ -3055,12 +3142,15 @@ function renderReport() {
     const rptTbody = document.getElementById("rptPlotsTbody");
     rptTbody.innerHTML = "";
 
-    let grandTotal = 0, totalLoan = 0, totalAreaSum = 0;
+    const loanAmounts = mthBookingLoanAmounts(p, selectedPlots, activeBank, isSelfFund);
+    let grandTotal = 0, totalLoan = loanAmounts.total, totalAreaSum = 0;
+    document.getElementById("rptLoanLabel").textContent = loanAmounts.manual
+        ? "Less: Bank Loan (Manual Override):"
+        : `Less: Estimated Loan Eligibility (${activeBank.loanPct || 0}%):`;
 
-    selectedPlots.forEach(plot => {
+    selectedPlots.forEach((plot, plotIndex) => {
         const fin = calculatePlotFinancials(p, plot);
         grandTotal += fin.subtotal;
-        totalLoan += fin.loanEligibility;
         totalAreaSum += plot.area;
 
         const tr = document.createElement("tr");
@@ -3072,7 +3162,7 @@ function renderReport() {
             <td>${formatCurrency(fin.cornerCost)}</td>
             <td>${formatCurrency(fin.taxAndDoc)}</td>
             <td><strong>${formatCurrency(fin.subtotal)}</strong></td>
-            <td class="rpt-loan-col" style="${isSelfFund ? 'display:none;' : ''}">${formatCurrency(fin.loanEligibility)}</td>
+            <td class="rpt-loan-col" style="${isSelfFund ? 'display:none;' : ''}">${formatCurrency(loanAmounts.amounts[plotIndex])}</td>
             <td style="text-align: left;">${plot.notes || '-'}</td>
         `;
         rptTbody.appendChild(tr);
