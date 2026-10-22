@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261022_2224 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261022_2252 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -925,17 +925,110 @@
             #registryPdfReport h3 { font-size:11pt; margin-top:14px; break-after:avoid; }
             #registryPdfReport p { margin:6px 0; overflow-wrap:anywhere; line-height:1.5; }
         }
-    </style>
+    /* Mobile screen layout; desktop and print retain their existing rules. */
+@media screen and (max-width: 767px) {
+  .container, .app-view-container, #printableVacantReport { min-width:0; max-width:100%; }
+  .main-tab-bar { width:100%; }
+  .main-tab-btn { min-width:0; padding:10px 5px; font-size:.78rem; white-space:normal; }
+  .tab-bar { flex-wrap:wrap; }
+  .tab-btn { min-width:0; padding:9px 6px; white-space:normal; }
+  .table-responsive { max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  #mthPrintAreaSummary { display:none; }
+  #vacantAreaBreakdownArrow { flex-shrink:0; }
+  #vacantMobileScrollHint { display:block; margin:6px 0; color:#475569; font-size:12px; }
+  #vacantMobileTable { min-width:1060px; table-layout:fixed; font-size:13px; }
+  #printableVacantReport #vacantMobileTable th,
+  #printableVacantReport #vacantMobileTable td { overflow-wrap:normal; word-break:normal; white-space:nowrap; padding:8px 7px; }
+  #printableVacantReport #vacantMobileTable th { white-space:normal; }
+  #printableVacantReport #vacantMobileTable th:nth-child(1) { width:40px; }
+  #printableVacantReport #vacantMobileTable th:nth-child(2) { width:90px; }
+  #printableVacantReport #vacantMobileTable th:nth-child(3) { width:70px; }
+  #printableVacantReport #vacantMobileTable th:nth-child(4) { width:90px; }
+  #printableVacantReport #vacantMobileTable th:nth-child(5) { width:70px; }
+  #printableVacantReport #vacantMobileTable th:nth-child(6) { width:110px; }
+  #printableVacantReport #vacantMobileTable th:nth-child(7),
+  #printableVacantReport #vacantMobileTable th:nth-child(8),
+  #printableVacantReport #vacantMobileTable th:nth-child(9) { width:130px; }
+  #printableVacantReport #vacantMobileTable th:nth-child(10) { width:100px; }
+  #vacantMobileTable thead th:nth-child(2),
+  #vacantReportTbody tr td:nth-child(2):not([colspan]) { position:sticky; left:0; z-index:2; background:#f1f5f9; box-shadow:2px 0 3px #cbd5e1; }
+  #vacantReportTbody td[colspan] { white-space:normal !important; }
+}
+#vacantMobileScrollHint { display:none; }
+@media screen and (max-width:767px) { #vacantMobileScrollHint { display:block; } }
+
+
+
+/* Android forms and live cost-sheet preview: screen only, never PDF or desktop. */
+@media screen and (max-width:767px) {
+  body { padding:6px; }
+  .container, .app-view-container, .tab-content, .card, .team-card,
+  #printableReport, #printableVacantReport, .master-two-col > * { min-width:0; max-width:100%; }
+  .card { padding:9px; }
+  .main-tab-bar { position:static; }
+  .main-tab-btn { min-height:42px; }
+  .tab-bar { flex-wrap:wrap; }
+  .tab-btn { flex:1 1 30%; min-height:42px; }
+  .toolbar { flex-wrap:wrap; gap:7px; }
+  .state-controls > div { flex-wrap:wrap; width:100%; min-width:0; }
+  #projectSelect { flex:1 1 100%; width:100%; }
+  .state-controls > div .btn { flex:1 1 auto; }
+  .form-grid, .team-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 8px; }
+  .form-group, .team-form-group { min-width:0; }
+  #tabBooking .form-group { max-width:none !important; }
+  .form-group label { font-size:11px; line-height:1.3; min-height:15px; }
+  input:not([type="radio"]):not([type="checkbox"]), select, textarea { min-width:0; max-width:100%; font-size:16px; min-height:40px; }
+  input[type="file"] { font-size:12px !important; padding:5px 2px; }
+  .radio-group-container { flex-wrap:wrap; gap:8px; padding:8px; }
+  .radio-option { font-size:13px; min-height:30px; }
+  .btn { min-height:38px; white-space:normal; }
+  .plot-selector-box { height:140px; }
+  .report-header { grid-template-columns:65px minmax(0,1fr); gap:7px; align-items:center; }
+  .brand-logo { max-width:65px; max-height:55px; }
+  .report-title-box, .report-title-box h1 { overflow-wrap:anywhere; }
+  .report-title-box h1 { font-size:14px; line-height:1.25; }
+  .master-two-col { grid-template-columns:minmax(0,1fr); gap:10px; }
+  .full-span { grid-column:1 / -1; }
+  .section-title { font-size:12px; margin-top:8px; }
+  .buyer-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .b-unit { min-width:0; overflow-wrap:anywhere; }
+  .b-unit .lbl { font-size:10px; }
+  .b-unit .val { font-size:13px; line-height:1.35; }
+  .pricing-matrix-grid { grid-template-columns:minmax(0,1fr); gap:2px; }
+  .pricing-matrix-grid li { gap:10px; font-size:13px; padding:6px 0; }
+  .pricing-matrix-grid span.val { text-align:right; }
+  .table-responsive, .team-table-container { width:100%; max-width:100%; min-width:0; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  #tabBooking .table-responsive > table { min-width:850px; font-size:13px; }
+  #tabInventory .inventory-table { min-width:850px; }
+  .summary-statement-table { width:100%; table-layout:fixed; }
+  .summary-statement-table td { font-size:12px; padding:7px 5px; overflow-wrap:anywhere; }
+  .summary-statement-table td:last-child { width:105px; white-space:nowrap; overflow-wrap:normal; }
+  .summary-statement-table tr.highlight-total td { font-size:13px; }
+  .kpi-container, .mth-summary-kpis { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:7px; }
+  .mth-summary-kpis .kpi-card { padding:9px 5px; }
+  .mth-summary-kpis .kpi-card .lbl { font-size:10px; }
+  .mth-summary-kpis .kpi-card .val { font-size:17px; }
+  .mth-kpi-area { font-size:11px; white-space:normal; }
+  #vacantCompactAreaSummary { display:none; }
+  .mth-range-banner { flex-wrap:wrap; gap:5px; }
+  .signature-section { gap:10px; }
+  .modal-content { width:96vw; max-width:96vw; min-width:0; }
+}
+@media screen and (max-width:360px) {
+  #tabBooking .form-grid { grid-template-columns:minmax(0,1fr); }
+}
+
+</style>
 </head>
 <body>
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261022_2224 IST">
+    <div class="app-brand-strip no-print" title="Release 261022_2252 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261022_2224 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261022_2224 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261022_2252 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261022_2252 IST</span>
         </div>
     </div>
 
@@ -1085,8 +1178,9 @@
                     </div>
                     <div id="mthPrintAreaSummary" class="mth-print-area-summary"><strong>VACANT PLOTS BY AREA:</strong> <span id="mthPrintAreaCounts">—</span></div>
                     <!-- Vacant Plots Table -->
+                    <p id="vacantMobileScrollHint" class="no-print">Swipe sideways to view all columns →</p>
                     <div class="table-responsive">
-                        <table>
+                        <table id="vacantMobileTable">
                             <thead>
                                 <tr>
                                     <th style="text-align: center;">SL</th>
