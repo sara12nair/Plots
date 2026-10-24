@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261023_1501 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261024_1016 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -1018,17 +1018,41 @@
   #tabBooking .form-grid { grid-template-columns:minmax(0,1fr); }
 }
 
+
+/* MTH vacant report legibility refinement: preserves all data and A4 footer. */
+@media print {
+  #printableVacantReport { font-size: 9pt !important; }
+  #printableVacantReport #vacantMobileTable { width:100% !important; table-layout:fixed !important; border-collapse:collapse; }
+  #printableVacantReport #vacantMobileTable th { font-size:6.3pt !important; line-height:1.22 !important; padding:4px 2px !important; }
+  #printableVacantReport #vacantMobileTable td { font-size:8pt !important; line-height:1.28 !important; padding:5px 3px !important; }
+  #printableVacantReport #vacantMobileTable td:nth-child(2) { font-weight:700; }
+  #printableVacantReport #vacantMobileTable th:nth-child(10),
+  #printableVacantReport #vacantMobileTable td:nth-child(10) { overflow-wrap:anywhere; }
+  #printableVacantReport .mth-summary-kpis .kpi-card { padding:7px 4px !important; }
+  #printableVacantReport .signature-section { margin-top:14px !important; }
+  #printableVacantReport #vacantCompactAreaSummary { margin-top:15px !important; }
+}
+@media screen and (max-width:767px) {
+  #printableVacantReport .report-header { gap:8px; }
+  #printableVacantReport .report-title-box h1 { overflow-wrap:anywhere; }
+  #printableVacantReport .mth-summary-kpis .kpi-card { min-width:0; }
+  #printableVacantReport .mth-summary-kpis .val { overflow-wrap:anywhere; }
+  #printableVacantReport .table-responsive { overflow-x:auto !important; -webkit-overflow-scrolling:touch; }
+  #printableVacantReport #vacantCompactAreaSummary { overflow-x:auto; }
+  #printableVacantReport #vacantCompactAreaTable { min-width:620px; }
+}
+
 </style>
 </head>
 <body>
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261023_1501 IST">
+    <div class="app-brand-strip no-print" title="Release 261024_1016 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261023_1501 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261023_1501 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261024_1016 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261024_1016 IST</span>
         </div>
     </div>
 
@@ -2878,7 +2902,7 @@ function renderInventoryTable() {
             <td><strong>${formatCurrency(fin.subtotal)}</strong></td>
             <td class="inv-loan-col" style="${isSelfFund ? 'display:none;' : ''}">${formatCurrency(fin.loanEligibility)}</td>
             <td><input type="text" value="${plot.notes || ''}" style="width: 100%;" oninput="updatePlotNotesDirect(${idx}, this.value)"></td>
-            <td style="text-align: center;"><button class="btn btn-danger" style="padding: 1px 5px; font-size: 0.6rem; min-height: 20px;" onclick="deletePlot(${idx})">Del</button></td>
+            <td style="text-align: center;"><button type="button" class="btn" style="padding:2px 5px;font-size:.65rem;min-height:23px;margin-bottom:3px" onclick="mthOpenSaleDetails(${idx})">Sale</button><button class="btn btn-danger" style="padding: 1px 5px; font-size: 0.6rem; min-height: 20px;" onclick="deletePlot(${idx})">Del</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -2952,6 +2976,7 @@ function savePlotStatus(idx) {
     renderReport();
     updateVacantReport();
     autoSaveState();
+    if (draft.next === 'Booked' || draft.next === 'Sold') mthOpenSaleDetails(idx);
 }
 
 function clearBulkPlotsInput() {
@@ -4877,6 +4902,137 @@ function lockProjectBankSetup(returnToInventory) {
         }
         return result;
     };
+})();
+</script>
+
+
+<!-- MTH sale attribution: one VP, at most one DVP; no new inventory columns -->
+<style>
+#mthSaleOverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;display:none;align-items:center;justify-content:center;padding:12px}
+#mthSalePanel{background:#fff;color:#17233c;border-radius:12px;max-width:540px;width:100%;max-height:92vh;overflow:auto;padding:20px;box-shadow:0 10px 35px #0005}
+#mthSalePanel label{display:block;font-weight:650;margin:10px 0 4px;font-size:13px}
+#mthSalePanel input,#mthSalePanel select{width:100%;box-sizing:border-box;padding:9px;border:1px solid #a7b2c2;border-radius:6px;font-size:15px;color:#17233c;background:#fff}
+#mthSalePanel .mth-sale-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+#mthSalePanel .mth-sale-actions button{padding:9px 13px;border-radius:6px;cursor:pointer}
+#mthSalePanel .mth-sale-hint{font-size:12px;color:#576275;margin:5px 0}
+@media(max-width:550px){#mthSalePanel{padding:14px}#mthSaleOverlay{padding:6px}}
+@media print{#mthSaleOverlay{display:none!important}}
+</style>
+<div id="mthSaleOverlay" class="no-print" role="presentation">
+ <div id="mthSalePanel" role="dialog" aria-modal="true" aria-labelledby="mthSaleTitle">
+  <h3 id="mthSaleTitle" style="margin:0">Plot Sale Details</h3>
+  <div id="mthSaleSub" class="mth-sale-hint"></div>
+  <label for="mthSaleVP">VP</label><select id="mthSaleVP" onchange="mthSaleVPChanged()"></select>
+  <div id="mthSaleDVPWrap"><label for="mthSaleDVP">DVP under Anu</label><select id="mthSaleDVP"></select></div>
+  <label for="mthSaleBookingDate">Booking date</label><input type="date" id="mthSaleBookingDate">
+  <label for="mthSaleRegistrationDate">Registration date</label><input type="date" id="mthSaleRegistrationDate">
+  <p class="mth-sale-hint">Dates may be corrected. A cancelled booking retains its history.</p>
+  <details><summary style="cursor:pointer">Manage team directory (add / edit / deactivate)</summary>
+   <div id="mthSaleDirectory" style="margin-top:8px"></div>
+   <label for="mthSaleMemberName">Full name</label><input id="mthSaleMemberName" placeholder="New VP or DVP name">
+   <label for="mthSaleMemberCode">Short code (editable)</label><input id="mthSaleMemberCode" placeholder="e.g. JP" maxlength="12">
+   <label for="mthSaleMemberRole">Role</label><select id="mthSaleMemberRole"><option value="DVP">DVP under Anu</option><option value="VP">VP</option></select>
+   <button type="button" onclick="mthAddSaleMember()" style="margin-top:8px;padding:7px">Add member</button>
+  </details>
+  <div class="mth-sale-actions">
+   <button type="button" onclick="mthCloseSaleDetails()">Cancel</button>
+   <button type="button" onclick="mthSaveSaleDetails()" style="background:#166534;color:white;border:0">Save Sale Details</button>
+  </div>
+ </div>
+</div>
+<script>
+(function(){
+const defaults=[
+ ['vp-anu','Anu','ANU','VP',null],['vp-bala','Balakrishnan','BALA','VP',null],
+ ['vp-govi','Govindaraj','GOVI','VP',null],['vp-elan','Elango','ELAN','VP',null],
+ ['vp-regh','Reghu','REGH','VP',null],['vp-karu','Karunanidhi','KARU','VP',null],
+ ['dvp-sn','Sashi Nair','SN','DVP','vp-anu'],['dvp-ak','Anilkumar','AK','DVP','vp-anu'],
+ ['dvp-jp','Jayaprakash','JP','DVP','vp-anu'],['dvp-gl','Glory','GL','DVP','vp-anu'],
+ ['dvp-ge','Geetha','GE','DVP','vp-anu'],['dvp-mk','Manikandan','MK','DVP','vp-anu'],
+ ['dvp-tg','Thyagarajan','TG','DVP','vp-anu']
+].map(([id,name,code,role,parentVPId])=>({id,name,code,role,parentVPId,active:true}));
+const byId=id=>document.getElementById(id);
+let editIdx=null,editProject=null;
+function directory(){
+ if(!Array.isArray(appData.mthSaleTeamDirectory)) appData.mthSaleTeamDirectory=defaults.map(x=>({...x}));
+ return appData.mthSaleTeamDirectory;
+}
+function option(member,selected){return '<option value="'+escapeHtml(member.id)+'"'+(member.id===selected?' selected':'')+'>'+escapeHtml(member.name+' ('+member.code+')')+'</option>';}
+function renderMembers(){
+ const members=directory();
+ byId('mthSaleVP').innerHTML='<option value="">Select VP</option>'+members.filter(x=>x.role==='VP'&&x.active).map(x=>option(x,byId('mthSaleVP').value)).join('');
+ mthSaleVPChanged();
+ const list=byId('mthSaleDirectory');
+ list.innerHTML=members.map(x=>'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin:5px 0;font-size:12px">'+
+ '<span style="flex:1;min-width:110px">'+escapeHtml(x.role+': '+x.name)+'</span>'+
+ '<input aria-label="Code for '+escapeHtml(x.name)+'" style="width:75px!important" maxlength="12" value="'+escapeHtml(x.code)+'" data-member-code="'+escapeHtml(x.id)+'">'+
+ '<button type="button" data-member-toggle="'+escapeHtml(x.id)+'">'+(x.active?'Deactivate':'Activate')+'</button></div>').join('');
+ list.querySelectorAll('[data-member-code]').forEach(input=>input.addEventListener('change',()=>{
+  const code=input.value.trim().toUpperCase();
+  if(!code || members.some(x=>x.id!==input.dataset.memberCode&&x.code.toUpperCase()===code)){alert('Enter a unique nonempty code.');renderMembers();return;}
+  members.find(x=>x.id===input.dataset.memberCode).code=code;autoSaveState();renderMembers();
+ }));
+ list.querySelectorAll('[data-member-toggle]').forEach(btn=>btn.addEventListener('click',()=>{
+  const m=members.find(x=>x.id===btn.dataset.memberToggle);m.active=!m.active;autoSaveState();renderMembers();
+ }));
+}
+window.mthSaleVPChanged=function(){
+ const selected=byId('mthSaleVP').value;
+ const wrap=byId('mthSaleDVPWrap');
+ wrap.style.display=selected==='vp-anu'?'block':'none';
+ const previous=byId('mthSaleDVP').value;
+ byId('mthSaleDVP').innerHTML='<option value="">Select DVP</option>'+directory().filter(x=>x.role==='DVP'&&x.parentVPId===selected&&x.active).map(x=>option(x,previous)).join('');
+};
+window.mthOpenSaleDetails=function(idx){
+ const p=getActiveProject(),plot=p?.plots?.[idx];if(!plot)return;
+ editIdx=idx;editProject=p;
+ byId('mthSaleTitle').textContent='Sale Details — Plot '+plot.plotNo;
+ byId('mthSaleSub').textContent='Project: '+p.name+' · Status: '+(plot.status||'Vacant');
+ const members=directory(),sale=plot.mthSaleDetails||{};
+ renderMembers();
+ if(sale.vpId && !members.some(x=>x.id===sale.vpId&&x.active)){
+  const old=members.find(x=>x.id===sale.vpId);if(old)byId('mthSaleVP').insertAdjacentHTML('beforeend',option(old,sale.vpId));
+ }
+ byId('mthSaleVP').value=sale.vpId||'';
+ mthSaleVPChanged();
+ if(sale.dvpId && !members.some(x=>x.id===sale.dvpId&&x.active)){
+  const old=members.find(x=>x.id===sale.dvpId);if(old)byId('mthSaleDVP').insertAdjacentHTML('beforeend',option(old,sale.dvpId));
+ }
+ byId('mthSaleDVP').value=sale.dvpId||'';
+ // Existing plots remain undated until a user confirms dates. New booked/sold plots suggest today.
+ const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});
+ const isoToday=(()=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const v=k=>parts.find(p=>p.type===k).value;return v('year')+'-'+v('month')+'-'+v('day')})();
+ byId('mthSaleBookingDate').value=sale.bookingDate||(!plot.mthSaleDetails&&plot.status==='Booked'?isoToday:'');
+ byId('mthSaleRegistrationDate').value=sale.registrationDate||(!plot.mthSaleDetails&&plot.status==='Sold'?isoToday:'');
+ byId('mthSaleOverlay').style.display='flex';
+};
+window.mthCloseSaleDetails=function(){byId('mthSaleOverlay').style.display='none';editIdx=null;editProject=null;};
+window.mthSaveSaleDetails=function(){
+ if(editIdx===null||!editProject)return;
+ const plot=editProject.plots[editIdx];if(!plot)return;
+ const vpId=byId('mthSaleVP').value,dvpId=vpId==='vp-anu'?byId('mthSaleDVP').value:null;
+ if(vpId==='vp-anu'&&!dvpId){alert('Select one DVP for Anu’s division.');return;}
+ const bookingDate=byId('mthSaleBookingDate').value,registrationDate=byId('mthSaleRegistrationDate').value;
+ if(registrationDate&&bookingDate&&registrationDate<bookingDate){alert('Registration date cannot be earlier than booking date.');return;}
+ const previous=plot.mthSaleDetails||{};
+ const next={vpId:vpId||null,dvpId,bookingDate,registrationDate};
+ const changed=JSON.stringify({vpId:previous.vpId||null,dvpId:previous.dvpId||null,bookingDate:previous.bookingDate||'',registrationDate:previous.registrationDate||''})!==JSON.stringify(next);
+ if(changed){
+  if(!Array.isArray(plot.mthSaleHistory))plot.mthSaleHistory=[];
+  if(plot.mthSaleDetails)plot.mthSaleHistory.push({details:{...previous},changedAt:new Date().toISOString()});
+  plot.mthSaleDetails=next;autoSaveState();
+ }
+ mthCloseSaleDetails();
+};
+window.mthAddSaleMember=function(){
+ const name=byId('mthSaleMemberName').value.trim(),code=byId('mthSaleMemberCode').value.trim().toUpperCase(),role=byId('mthSaleMemberRole').value;
+ if(!name||!code){alert('Enter name and short code.');return;}
+ if(directory().some(x=>x.code.toUpperCase()===code)){alert('Short code already in use. Choose another.');return;}
+ directory().push({id:'member-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),name,code,role,parentVPId:role==='DVP'?'vp-anu':null,active:true});
+ byId('mthSaleMemberName').value='';byId('mthSaleMemberCode').value='';autoSaveState();renderMembers();
+};
+byId('mthSaleOverlay').addEventListener('click',e=>{if(e.target===byId('mthSaleOverlay'))mthCloseSaleDetails();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&byId('mthSaleOverlay').style.display==='flex')mthCloseSaleDetails();});
 })();
 </script>
 
