@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261022_2252 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261023_1501 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -1024,11 +1024,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261022_2252 IST">
+    <div class="app-brand-strip no-print" title="Release 261023_1501 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261022_2252 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261022_2252 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261023_1501 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261023_1501 IST</span>
         </div>
     </div>
 
@@ -1082,6 +1082,7 @@
                             📁 CSV Import <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="importInventoryCSV(event)">
                         </label>
                         <button class="btn btn-success" onclick="addPlot()">➕ Add Plot</button>
+                        <button type="button" class="btn btn-outline" id="mthOrderModeBtn" onclick="mthToggleManualPlotOrder()" title="Switch between automatic numerical order and manual row ordering">↕ Manual order: OFF</button>
                         <button class="btn" style="background-color: #4f46e5;" onclick="triggerVacantReportPrint()">🖨️ Print Vacant Report</button>
                         <button class="btn btn-whatsapp" title="Share via WhatsApp" onclick="shareVacantReportViaWhatsApp()">💬 WhatsApp</button>
                     </div>
@@ -1118,6 +1119,7 @@
                         <table class="inventory-table">
                             <thead>
                                 <tr>
+                                    <th class="no-print" style="width: 62px;">Move</th>
                                     <th style="width: 70px;">Status</th>
                                     <th style="width: 50px;">Plot No</th>
                                     <th style="width: 60px;">Facing</th>
@@ -2782,25 +2784,94 @@ function calculatePlotFinancials(p, plot) {
     return { effPrice, cornerCost, baseCost, taxAndDoc, subtotal, loanEligibility };
 }
 
+// Numeric-aware ordering for display only. Preserve stored plot objects and indices,
+// including status drafts, Firebase data and existing booking references.
+function mthComparePlotNumbers(a, b) {
+    return String(a ?? '').trim().localeCompare(String(b ?? '').trim(), undefined,
+        { numeric: true, sensitivity: 'base' });
+}
+// Manual ordering keeps the saved project array in user-chosen order.
+// Automatic mode sorts the display numerically without mutating saved records.
+let mthManualPlotOrder = localStorage.getItem('mthManualPlotOrder') === '1';
+function mthPlotEntries(plots) {
+    return mthManualPlotOrder ? (plots || []).map((plot, idx) => ({ plot, idx })) : mthSortedPlotEntries(plots);
+}
+function mthUpdateOrderButton() {
+    const btn = document.getElementById('mthOrderModeBtn');
+    if (!btn) return;
+    btn.textContent = mthManualPlotOrder ? '↕ Manual order: ON' : '↕ Manual order: OFF';
+    btn.title = mthManualPlotOrder ? 'Drag a row handle, or use ↑ ↓ to arrange plots; click to return to numeric sorting' : 'Click to enable manual dragging or ↑ ↓ movement';
+}
+function mthToggleManualPlotOrder() {
+    if (!mthManualPlotOrder) {
+        // Start manual ordering from the exact currently visible numerical sequence.
+        const p = getActiveProject();
+        if (p && p.plots) p.plots = mthSortedPlotEntries(p.plots).map(e => e.plot);
+    }
+    mthManualPlotOrder = !mthManualPlotOrder;
+    localStorage.setItem('mthManualPlotOrder', mthManualPlotOrder ? '1' : '0');
+    mthUpdateOrderButton();
+    renderInventoryTable();
+    populateMultiPlotSelect();
+    if (mthManualPlotOrder) autoSaveState();
+}
+let mthDraggedPlotIndex = null;
+function mthDragPlotStart(event, idx) {
+    if (!mthManualPlotOrder) { event.preventDefault(); return; }
+    mthDraggedPlotIndex = idx;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(idx));
+}
+function mthDropPlot(event, targetIdx) {
+    event.preventDefault();
+    if (!mthManualPlotOrder || mthDraggedPlotIndex === null) return;
+    const from = mthDraggedPlotIndex;
+    mthDraggedPlotIndex = null;
+    mthMovePlotTo(from, targetIdx);
+}
+function mthMovePlotTo(from, to) {
+    if (!mthManualPlotOrder) return;
+    const p = getActiveProject();
+    if (!p || !p.plots || from < 0 || to < 0 || from >= p.plots.length || to >= p.plots.length || from === to) return;
+    const [plot] = p.plots.splice(from, 1);
+    p.plots.splice(to, 0, plot);
+    renderInventoryTable();
+    populateMultiPlotSelect();
+    autoSaveState();
+}
+function mthSortedPlotEntries(plots) {
+    return (plots || []).map((plot, idx) => ({ plot, idx }))
+        .sort((a, b) => mthComparePlotNumbers(a.plot.plotNo, b.plot.plotNo) || a.idx - b.idx);
+}
+function mthFinishPlotNumberEdit(input) {
+    // Reorder rows only when editing is finished; never replace the focused input.
+    if (input && document.activeElement === input) input.blur();
+    if (!mthManualPlotOrder) renderInventoryTable();
+}
+
 function renderInventoryTable() {
     const p = getActiveProject();
     const tbody = document.getElementById("inventoryTbody");
     tbody.innerHTML = "";
+    mthUpdateOrderButton();
 
     if (!p.plots) p.plots = [];
     const isSelfFund = (p.paymentMode === "self_fund" || p.paymentMode === "cash");
 
-    p.plots.forEach((plot, idx) => {
+    mthPlotEntries(p.plots).forEach(({ plot, idx }, position) => {
         const fin = calculatePlotFinancials(p, plot);
         const tr = document.createElement("tr");
         const draft = inventoryStatusDrafts.get(plot);
         const currentStatus = draft ? draft.next : (plot.status || 'Vacant');
         tr.className = `row-${currentStatus.toLowerCase()}`;
 
+        tr.addEventListener('dragover', event => { if (mthManualPlotOrder) event.preventDefault(); });
+        tr.addEventListener('drop', event => mthDropPlot(event, idx));
         tr.innerHTML = `
+            <td class="no-print" style="white-space:nowrap;text-align:center">${mthManualPlotOrder ? `<span draggable="true" ondragstart="mthDragPlotStart(event, ${idx})" ondragend="mthDraggedPlotIndex=null" title="Drag to rearrange" style="cursor:grab;touch-action:none;font-size:16px">⠿</span><button type="button" title="Move up" onclick="mthMovePlotTo(${idx},${idx-1})" ${position===0?'disabled':''} style="margin-left:3px">↑</button><button type="button" title="Move down" onclick="mthMovePlotTo(${idx},${idx+1})" ${position===p.plots.length-1?'disabled':''}>↓</button>` : '—'}</td>
             <td><button type="button" class="status-btn status-btn-${currentStatus.toLowerCase()}" title="Click to stage a status change; then Save or Cancel" onclick="cyclePlotStatus(${idx})">${currentStatus}${draft ? ' *' : ''}</button>
                 ${draft ? `<div style="font-size:.65rem;white-space:nowrap">Unsaved</div><button type="button" class="btn" style="padding:2px 5px" onclick="savePlotStatus(${idx})">Save</button> <button type="button" class="btn btn-secondary" style="padding:2px 5px" onclick="cancelPlotStatus(${idx})">Cancel</button>` : ''}${renderPlotStatusHistory(plot)}</td>
-            <td><input type="text" value="${plot.plotNo}" style="width: 100%;" oninput="updatePlotField(${idx}, 'plotNo', this.value)"></td>
+            <td><input type="text" value="${plot.plotNo}" style="width: 100%;" oninput="updatePlotField(${idx}, 'plotNo', this.value)" onblur="mthFinishPlotNumberEdit(this)"></td>
             <td><input type="text" value="${plot.facing}" style="width: 100%;" oninput="updatePlotField(${idx}, 'facing', this.value)"></td>
             <td><input type="number" value="${plot.area}" style="width: 100%;" oninput="getActiveProject().plots[${idx}].area = parseFloat(this.value) || 0; renderReport(); updateVacantReport(); autoSaveState();"></td>
             <td style="text-align: center;"><input type="checkbox" ${plot.corner ? 'checked' : ''} onchange="updatePlotField(${idx}, 'corner', this.checked)"></td>
@@ -2900,8 +2971,12 @@ function updatePlotNotesDirect(idx, val) {
 }
 
 function updatePlotField(idx, field, val) {
-    getActiveProject().plots[idx][field] = val;
-    renderInventoryTable();
+    const project = getActiveProject();
+    if (!project?.plots?.[idx]) return;
+    project.plots[idx][field] = val;
+    // Do not replace a text input while the user is typing: doing so loses focus.
+    // Checkbox changes can safely refresh the financial cells and row styling.
+    if (field === 'corner') renderInventoryTable();
     populateMultiPlotSelect();
     renderReport();
     updateVacantReport();
@@ -3120,7 +3195,7 @@ function populateMultiPlotSelect() {
     select.innerHTML = "";
 
     if (p.plots) {
-        p.plots.forEach((plot) => {
+        mthPlotEntries(p.plots).forEach(({ plot }) => {
             if (String(plot.status || 'Vacant').trim().toLowerCase() !== 'vacant') return;
             const opt = document.createElement("option");
             opt.value = plot.plotNo;
