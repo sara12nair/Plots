@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261024_1016 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261024_1240 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -253,15 +253,15 @@
 
         #printableVacantReport th, #printableVacantReport td { overflow-wrap:anywhere; }
         #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(1) { width:4%; }
-        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(2) { width:12%; }
-        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(3) { width:4%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(2) { width:10%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(3) { width:7%; }
         #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(4) { width:9%; }
-        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(5) { width:6%; }
-        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(6) { width:9%; }
-        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(7) { width:13%; }
-        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(8) { width:13%; }
-        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(9) { width:14%; }
-        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(10) { width:16%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(5) { width:8%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(6) { width:11%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(7) { width:12%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(8) { width:12%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(9) { width:16%; }
+        #printableVacantReport table:not(#vacantCompactAreaTable) th:nth-child(10) { width:11%; }
         /* Keep combined plot numbers (e.g. 127/128) on one line. */
         #vacantReportTbody td:nth-child(2) { white-space:nowrap !important; overflow-wrap:normal !important; word-break:normal !important; }
         .mth-print-area-summary { margin:5px 0 8px; padding:6px 9px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; font-size:11px; }
@@ -1043,16 +1043,38 @@
 }
 
 </style>
+<style>
+/* MTH 2026-10-24: vacant-report column redistribution only. */
+#printableVacantReport #vacantMobileTable thead th:nth-child(3),
+#printableVacantReport #vacantMobileTable thead th:nth-child(5) {
+  white-space:nowrap!important; overflow-wrap:normal!important; word-break:normal!important;
+}
+#printableVacantReport #vacantCompactAreaTable th,
+#printableVacantReport #vacantCompactAreaTable td {
+  border:1px solid #cbd5e1!important;
+  padding:3px 4px!important;
+  white-space:nowrap!important;
+  overflow-wrap:normal!important;
+  box-sizing:border-box;
+}
+#printableVacantReport #vacantCompactAreaTable th:nth-child(even),
+#printableVacantReport #vacantCompactAreaTable td:nth-child(even) { text-align:center; }
+@media print {
+ #printableVacantReport #vacantMobileTable { table-layout:fixed!important; width:100%!important; }
+ #printableVacantReport #vacantCompactAreaTable th,
+ #printableVacantReport #vacantCompactAreaTable td { padding:2px 2px!important; font-size:6.2pt!important; }
+}
+</style>
 </head>
 <body>
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261024_1016 IST">
+    <div class="app-brand-strip no-print" title="Release 261024_1240 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261024_1016 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261024_1016 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261024_1240 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261024_1240 IST</span>
         </div>
     </div>
 
@@ -1211,9 +1233,9 @@
                                 <tr>
                                     <th style="text-align: center;">SL</th>
                                     <th>PLOT NO</th>
-                                    <th style="text-align: center;">FACING</th>
+                                    <th style="text-align: center;">FACE</th>
                                     <th style="text-align: right;">AREA (SFT)</th>
-                                    <th style="text-align: center;">CORNER?</th>
+                                    <th style="text-align: center;">CORNER</th>
                                     <th style="text-align: right;">SELLING RATE/SFT</th>
                                     <th style="text-align: right;">PLOT COST (₹)</th>
                                     <th style="text-align: right;">REGN + DOC (₹)</th>
