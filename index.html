@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261025_2121 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261025_2134 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -1070,11 +1070,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261025_2121 IST">
+    <div class="app-brand-strip no-print" title="Release 261025_2134 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261025_2121 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261025_2121 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261025_2134 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261025_2134 IST</span>
         </div>
     </div>
 
@@ -1130,6 +1130,7 @@
                         <button class="btn btn-success" onclick="addPlot()">➕ Add Plot</button>
                         <button type="button" class="btn btn-outline" id="mthOrderModeBtn" onclick="mthToggleManualPlotOrder()" title="Switch between automatic numerical order and manual row ordering">↕ Manual order: OFF</button>
                         <button class="btn" style="background-color: #4f46e5;" onclick="triggerVacantReportPrint()">🖨️ Print Vacant Report</button>
+                        <button type="button" class="btn btn-outline" onclick="mthOpenHistoryReport()">🖨️ Booking / Sold History</button>
                         <button class="btn btn-whatsapp" title="Share via WhatsApp" onclick="shareVacantReportViaWhatsApp()">💬 WhatsApp</button>
                     </div>
                 </div>
@@ -2935,7 +2936,7 @@ function recordPlotStatusChange(plot, next, source) {
     const previous = plot.status || 'Vacant';
     if (previous === next) return false;
     if (!Array.isArray(plot.statusHistory)) plot.statusHistory = [];
-    plot.statusHistory.push({ from: previous, to: next, at: new Date().toISOString(), source });
+    plot.statusHistory.push({ from: previous, to: next, at: new Date().toISOString(), source, saleDetails: plot.mthSaleDetails ? {...plot.mthSaleDetails} : null, area: plot.area });
     plot.status = next;
     return true;
 }
@@ -5054,7 +5055,10 @@ window.mthSaveSaleDetails=function(){
  if(changed){
   if(!Array.isArray(plot.mthSaleHistory))plot.mthSaleHistory=[];
   if(plot.mthSaleDetails)plot.mthSaleHistory.push({details:{...previous},changedAt:new Date().toISOString()});
-  plot.mthSaleDetails=next;autoSaveState();
+  plot.mthSaleDetails=next;
+  if(!Array.isArray(plot.statusHistory))plot.statusHistory=[];
+  plot.statusHistory.push({from:plot.status||'Vacant',to:plot.status||'Vacant',at:new Date().toISOString(),source:'Sale details saved',saleDetails:{...next},area:plot.area});
+  autoSaveState();
  }
  mthCloseSaleDetails();
 };
@@ -5069,6 +5073,92 @@ window.mthAddSaleMember=function(){
 };
 byId('mthSaleOverlay').addEventListener('click',e=>{if(e.target===byId('mthSaleOverlay'))mthCloseSaleDetails();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&byId('mthSaleOverlay').style.display==='flex')mthCloseSaleDetails();});
+})();
+</script>
+
+
+<style>
+#mthHistoryOverlay{position:fixed;inset:0;background:#0009;z-index:100001;padding:15px;display:none;overflow:auto}
+#mthHistoryPanel{max-width:1200px;margin:auto;background:white;color:#17233c;padding:18px;border-radius:10px}
+#mthHistoryFilters{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;align-items:end}
+#mthHistoryFilters label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600}
+#mthHistoryFilters select,#mthHistoryFilters input{padding:7px;min-height:36px;max-width:220px}
+#mthHistoryPreview{overflow:auto;max-height:65vh}#mthHistoryPreview table{min-width:1000px}
+@media print{#mthHistoryOverlay{display:none!important}}
+</style>
+<div id="mthHistoryOverlay" class="no-print"><div id="mthHistoryPanel" role="dialog" aria-modal="true" aria-labelledby="mthHistoryTitle">
+<div style="display:flex;justify-content:space-between;gap:10px"><h2 id="mthHistoryTitle">Booking &amp; Sold History</h2><button class="btn" onclick="document.getElementById('mthHistoryOverlay').style.display='none'">Close</button></div>
+<div id="mthHistoryFilters">
+<label>Table view<select id="mthHistView" onchange="mthRenderHistoryReport()"><option value="summary">VP / DVP summary</option><option value="history">Detailed history by VP / DVP</option></select></label>
+<label>Project<select id="mthHistProject" onchange="mthRenderHistoryReport()"></select></label>
+<label>From (IST)<input type="date" id="mthHistFrom" onchange="mthRenderHistoryReport()"></label>
+<label>To (IST)<input type="date" id="mthHistTo" onchange="mthRenderHistoryReport()"></label>
+<label>VP<select id="mthHistVP" onchange="mthHistoryVPChanged()"></select></label>
+<label>DVP<select id="mthHistDVP" onchange="mthRenderHistoryReport()"></select></label>
+<button class="btn" onclick="mthPrintHistoryReport()">Print / Save PDF</button></div>
+<p style="font-size:12px;margin:8px 0">Earlier status entries may lack team details or booking dates. These remain blank. Current records without saved history are labelled. Summary counts current Booked / Sold plots; date filters use booking date for Booked and registration date for Sold. Detailed history uses the recorded change date. Undated entries appear only without date filters.</p>
+<div id="mthHistoryCount" style="font-weight:bold;margin:8px 0"></div><div id="mthHistoryPreview"></div>
+</div></div>
+<script>
+(function(){
+const el=id=>document.getElementById(id),esc=x=>escapeHtml(String(x??''));
+function day(value){if(!value)return '';const d=new Date(value);if(!Number.isFinite(d.getTime()))return '';return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
+function stamp(value){if(!value)return '';const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})+' IST':'';}
+window.mthBuildHistoryRows=function(projects){
+ const rows=[];
+ (projects||[]).forEach((p,pi)=>(p.plots||[]).forEach(plot=>{
+  const history=(plot.statusHistory||[]).filter(e=>['Booked','Sold'].includes(e.from)||['Booked','Sold'].includes(e.to));
+  history.forEach(e=>rows.push({project:p.name,projectIndex:pi,plot:plot.plotNo,area:e.area??plot.area,event:e.from===e.to?(e.source||'Details updated'):e.from+' → '+e.to,at:e.at||'',sale:e.saleDetails||{},source:e.source||'Inventory Save'}));
+  if(!history.length&&['Booked','Sold'].includes(plot.status))rows.push({project:p.name,projectIndex:pi,plot:plot.plotNo,area:plot.area,event:plot.status+' — current record; history unavailable',at:'',sale:plot.mthSaleDetails||{},source:'Current record'});
+ }));
+ return rows.sort((a,b)=>(Date.parse(b.at)||0)-(Date.parse(a.at)||0)||String(a.project).localeCompare(String(b.project))||String(a.plot).localeCompare(String(b.plot),undefined,{numeric:true}));
+};
+function opts(role,parent){return (appData.mthSaleTeamDirectory||[]).filter(m=>m.role===role&&(!parent||m.parentVPId===parent)).map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name+' ('+m.code+')'+(!m.active?' [inactive]':''))+'</option>').join('');}
+window.mthOpenHistoryReport=function(){
+ el('mthHistProject').innerHTML='<option value="">All projects</option>'+(appData.projects||[]).map((p,i)=>'<option value="'+i+'">'+esc(p.name)+'</option>').join('');
+ el('mthHistProject').value=String(appData.activeProjectIndex||0);
+ el('mthHistVP').innerHTML='<option value="">All VPs</option>'+opts('VP');
+ el('mthHistDVP').innerHTML='<option value="">All DVPs</option>'+opts('DVP');
+ el('mthHistoryOverlay').style.display='block';mthRenderHistoryReport();
+};
+window.mthHistoryVPChanged=function(){el('mthHistDVP').innerHTML='<option value="">All DVPs</option>'+opts('DVP',el('mthHistVP').value);mthRenderHistoryReport();};
+function filtered(){const project=el('mthHistProject').value,from=el('mthHistFrom').value,to=el('mthHistTo').value,vp=el('mthHistVP').value,dvp=el('mthHistDVP').value;
+ if(from&&to&&from>to)return [];
+ if(el('mthHistView').value==='summary')return mthBuildTeamSummary(appData.projects,{project,from,to,vp,dvp});
+ return mthBuildHistoryRows(appData.projects).filter(r=>{const d=day(r.at);return(project===''||r.projectIndex===Number(project))&&(!from||(d&&d>=from))&&(!to||(d&&d<=to))&&(!vp||r.sale.vpId===vp)&&(!dvp||r.sale.dvpId===dvp);}).sort((a,b)=>team(a.sale.vpId).localeCompare(team(b.sale.vpId))||team(a.sale.dvpId).localeCompare(team(b.sale.dvpId))||(Date.parse(b.at)||0)-(Date.parse(a.at)||0));}
+window.mthBuildTeamSummary=function(projects,f={}){
+ const groups=new Map(),members=appData.mthSaleTeamDirectory||[];
+ const name=(id,fallback)=>{const m=members.find(x=>x.id===id);return m?m.name+' ('+m.code+')':fallback;};
+ (projects||[]).forEach((p,pi)=>{if(f.project!==undefined&&f.project!==''&&pi!==Number(f.project))return;
+ (p.plots||[]).forEach(plot=>{if(!['Booked','Sold'].includes(plot.status))return;const sale=plot.mthSaleDetails||{};
+ if(f.vp&&sale.vpId!==f.vp||f.dvp&&sale.dvpId!==f.dvp)return;
+ const date=plot.status==='Sold'?sale.registrationDate:sale.bookingDate;
+ if(f.from&&(!date||date<f.from)||f.to&&(!date||date>f.to))return;
+ const key=JSON.stringify([sale.vpId||'',sale.dvpId||'']);
+ if(!groups.has(key))groups.set(key,{vpId:sale.vpId||'',vp:name(sale.vpId,'VP unrecorded'),dvp:name(sale.dvpId,'DVP unrecorded / VP only'),booked:0,bookedArea:0,sold:0,soldArea:0});
+ const r=groups.get(key),kind=plot.status==='Sold'?'sold':'booked';r[kind]++;r[kind+'Area']+=Number(plot.area)||0;
+ });});
+ const sorted=[...groups.values()].sort((a,b)=>a.vp.localeCompare(b.vp)||a.dvp.localeCompare(b.dvp)),out=[];
+ const total={vp:'Grand total',dvp:'',booked:0,bookedArea:0,sold:0,soldArea:0,total:true};
+ const keys=['booked','bookedArea','sold','soldArea'];let sub=null;
+ for(const r of sorted){if(sub&&sub.vpId!==r.vpId){out.push(sub);sub=null;}if(!sub)sub={vpId:r.vpId,vp:r.vp+' subtotal',dvp:'',booked:0,bookedArea:0,sold:0,soldArea:0,total:true};out.push(r);keys.forEach(k=>{sub[k]+=r[k];total[k]+=r[k];});}
+ if(sub){out.push(sub);out.push(total);}return out;
+};
+function summaryTable(rows){const headers=['VP','DVP','Booked plots','Booked area (sft)','Sold plots','Sold area (sft)','Total plots'];return '<table class="team-summary"><thead><tr>'+headers.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr'+(r.total?' style="font-weight:bold;background:#edf2f7"':'')+'>'+[r.vp,r.dvp,r.booked,r.bookedArea,r.sold,r.soldArea,r.booked+r.sold].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
+const heads=['Sl.','Project','Plot','Area (sft)','Status / event','Recorded on (IST)','VP','DVP','Booking date','Registration date'];
+function team(id){const m=(appData.mthSaleTeamDirectory||[]).find(x=>x.id===id);return m?m.code:'';}
+function table(rows,offset=0){if(el('mthHistView').value==='summary')return summaryTable(rows);return '<table><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map((r,i)=>'<tr>'+[offset+i+1,r.project,r.plot,r.area,r.event,stamp(r.at),team(r.sale.vpId),team(r.sale.dvpId),r.sale.bookingDate||'',r.sale.registrationDate||''].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
+window.mthRenderHistoryReport=function(){const rows=filtered();el('mthHistoryCount').textContent=el('mthHistView').value==='summary'?(rows.filter(r=>!r.total).length+' DVP / VP-only groups · '+(rows.at(-1)?rows.at(-1).booked+rows.at(-1).sold:0)+' plots'):rows.length+' history entries · '+new Set(rows.map(r=>r.projectIndex+'|'+r.plot)).size+' plots';el('mthHistoryPreview').innerHTML=rows.length?table(rows):'<p>No matching history entries.</p>';};
+window.mthPrintHistoryReport=function(){
+ const rows=filtered();if(!rows.length){alert('No matching history entries to print.');return;}
+ const win=window.open('','_blank');if(!win){alert('Allow pop-ups to open the print preview.');return;}
+ const chunks=[];for(let i=0;i<rows.length;i+=12)chunks.push(rows.slice(i,i+12));
+ const label=id=>el(id).options[el(id).selectedIndex]?.text||'';
+ const description=[label('mthHistView'),label('mthHistProject'),label('mthHistVP'),label('mthHistDVP'),(el('mthHistFrom').value||'Beginning')+' to '+(el('mthHistTo').value||'Latest')].join(' · ');
+ const printed=stamp(new Date().toISOString());
+ const pages=chunks.map((part,i)=>'<section><h1>Madras Trading House — Booking &amp; Sold History</h1><p>'+esc(description)+'</p>'+table(part,i*12)+'<p class="note">Summary counts current statuses; history lists saved changes. Missing attribution remains unrecorded.</p><footer><span>Page '+(i+1)+' of '+chunks.length+'</span><span>Sashi R Nair · '+esc(printed)+'</span></footer></section>').join('');
+ win.document.write('<!doctype html><html><head><meta charset="UTF-8"><title>MTH_Booking_Sold_History</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font:10px Calibri,Arial,sans-serif;color:#17233c;margin:0}section{position:relative;height:188mm;page-break-after:always;padding-bottom:15mm}section:last-child{page-break-after:auto}h1{font-size:17px;margin:0 0 6px}p{margin:5px 0}table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #b7c3d3;padding:5px;overflow-wrap:anywhere;vertical-align:top}th{background:#edf2f7}th:nth-child(1){width:4%}th:nth-child(2){width:13%}th:nth-child(3){width:5%}th:nth-child(4){width:7%}th:nth-child(5){width:20%}th:nth-child(6){width:15%}th:nth-child(7),th:nth-child(8){width:6%}th:nth-child(9),th:nth-child(10){width:12%}footer{position:absolute;bottom:0;width:100%;display:flex;justify-content:space-between;border-top:1px solid #aaa;padding-top:5px;font-size:8pt}.note{font-size:9px;color:#555}.team-summary th:nth-child(n){width:auto}.team-summary th:nth-child(1),.team-summary th:nth-child(2){width:24%}@media screen{body{background:#ddd}section{background:white;width:277mm;margin:15px auto;padding:10mm;height:198mm}footer{width:calc(100% - 20mm);bottom:6mm}}@media print{.controls{display:none}}</style></head><body><div class="controls" style="padding:10px;text-align:center"><button onclick="window.print()">Print / Save PDF</button></div>'+pages+'</body></html>');win.document.close();
+};
 })();
 </script>
 
