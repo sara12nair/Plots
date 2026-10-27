@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261025_2134 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261027_2106 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -1070,11 +1070,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261025_2134 IST">
+    <div class="app-brand-strip no-print" title="Release 261027_2106 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261025_2134 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261025_2134 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261027_2106 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261027_2106 IST</span>
         </div>
     </div>
 
@@ -1127,7 +1127,8 @@
                         <label class="btn btn-success" style="cursor: pointer; margin: 0;">
                             📁 CSV Import <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="importInventoryCSV(event)">
                         </label>
-                        <button class="btn btn-success" onclick="addPlot()">➕ Add Plot</button>
+                        <button class="btn btn-success" type="button" onclick="addPlot()">➕ Add Plot</button>
+                        <button type="button" class="btn" id="restoreDeletedPlotsBtn" onclick="mthRestoreDeletedPlot()" disabled>Restore Deleted (0)</button>
                         <button type="button" class="btn btn-outline" id="mthOrderModeBtn" onclick="mthToggleManualPlotOrder()" title="Switch between automatic numerical order and manual row ordering">↕ Manual order: OFF</button>
                         <button class="btn" style="background-color: #4f46e5;" onclick="triggerVacantReportPrint()">🖨️ Print Vacant Report</button>
                         <button type="button" class="btn btn-outline" onclick="mthOpenHistoryReport()">🖨️ Booking / Sold History</button>
@@ -2132,8 +2133,8 @@ function generatePayId(designation, reportsToName) {
     if (designation === 'DVP') return 'S06';
     if (designation === 'CP') return 'CP01';
     
-    let sponsor = membersData.find(m => m.name === reportsToName);
-    let sponsorDesig = sponsor ? sponsor.designation : '';
+    let sponsor = membersData.find(m => m.name === reportsToName) || (appData.mthSaleTeamDirectory || []).find(m => m.name === reportsToName && m.role === 'VP');
+    let sponsorDesig = sponsor ? (sponsor.designation || sponsor.role) : '';
     
     if (designation === 'BDM') {
         if (sponsorDesig === 'VP') return 'S05';
@@ -2901,6 +2902,7 @@ function renderInventoryTable() {
     const tbody = document.getElementById("inventoryTbody");
     tbody.innerHTML = "";
     mthUpdateOrderButton();
+    mthUpdateDeletedPlotButton();
 
     if (!p.plots) p.plots = [];
     const isSelfFund = (p.paymentMode === "self_fund" || p.paymentMode === "cash");
@@ -2911,6 +2913,7 @@ function renderInventoryTable() {
         const draft = inventoryStatusDrafts.get(plot);
         const currentStatus = draft ? draft.next : (plot.status || 'Vacant');
         tr.className = `row-${currentStatus.toLowerCase()}`;
+        tr.dataset.plotIndex = String(idx);
 
         tr.addEventListener('dragover', event => { if (mthManualPlotOrder) event.preventDefault(); });
         tr.addEventListener('drop', event => mthDropPlot(event, idx));
@@ -3032,9 +3035,95 @@ function updatePlotField(idx, field, val) {
 }
 
 function addPlot() {
-    const p = getActiveProject();
-    if (!p.plots) p.plots = [];
-    p.plots.push({ plotNo: (p.plots.length + 101).toString(), facing: "North", area: 1200, corner: false, notes: "", status: "Vacant" });
+    const existing = document.getElementById('mthAddPlotDialog');
+    if (existing) { existing.querySelector('input')?.focus(); return; }
+    const project = getActiveProject();
+    if (!project) return;
+    const dialog = document.createElement('dialog');
+    dialog.id = 'mthAddPlotDialog'; dialog.className = 'no-print';
+    dialog.style.cssText = 'border:1px solid #bac7dd;border-radius:14px;padding:22px;width:calc(100% - 32px);max-width:440px;box-sizing:border-box;color:#17233c;max-height:90vh;overflow:auto';
+    dialog.innerHTML = `<h2 style="margin:0 0 12px;font-size:20px">Add Plot</h2>
+        <p class="add-project" style="margin:0 0 14px"></p>
+        <form style="display:grid;gap:12px">
+            <label>Plot number *<input name="plotNo" type="text" required maxlength="60" autofocus style="display:block;width:100%;box-sizing:border-box;padding:9px"></label>
+            <label>Facing *<input name="facing" type="text" required placeholder="E.g. N, S, E, W" style="display:block;width:100%;box-sizing:border-box;padding:9px"></label>
+            <label>Area (sft) *<input name="area" type="number" required min="0.01" step="any" style="display:block;width:100%;box-sizing:border-box;padding:9px"></label>
+            <label style="display:flex;align-items:center;gap:8px"><input name="corner" type="checkbox"> Corner plot</label>
+            <label>Notes<input name="notes" type="text" style="display:block;width:100%;box-sizing:border-box;padding:9px"></label>
+            <p style="margin:0">Status on save: Vacant. Nothing is added until you press Save Plot.</p>
+            <p class="add-error" role="alert" style="color:#b91c1c;margin:0"></p>
+            <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
+                <button type="button" class="btn add-cancel">Cancel</button>
+                <button type="submit" class="btn btn-success">Save Plot</button>
+            </div>
+        </form>`;
+    dialog.querySelector('.add-project').textContent = project.name;
+    dialog.querySelector('.add-cancel').onclick = () => dialog.close();
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    const form = dialog.querySelector('form');
+    let submitted = false;
+    form.onsubmit = event => {
+        event.preventDefault();
+        if (submitted) return;
+        const error = dialog.querySelector('.add-error');
+        if (getActiveProject() !== project) {
+            error.textContent = 'The project data changed. Cancel and open Add Plot again.'; return;
+        }
+        const fields = form.elements;
+        const plotNo = fields.namedItem('plotNo').value.trim().toUpperCase();
+        const facing = fields.namedItem('facing').value.trim().toUpperCase();
+        const area = Number(fields.namedItem('area').value);
+        const normalize = value => String(value ?? '').trim().toUpperCase();
+        if (!plotNo || !facing || !Number.isFinite(area) || area <= 0) {
+            error.textContent = 'Enter plot number, facing and an area greater than zero.'; return;
+        }
+        if ((project.plots || []).some(plot => normalize(plot.plotNo) === plotNo)) {
+            error.textContent = `Plot ${plotNo} already exists. No new plot has been added.`; return;
+        }
+        if ((project.deletedPlots || []).some(entry => normalize(entry.plot.plotNo) === plotNo)) {
+            error.textContent = `Plot ${plotNo} is in Restore Deleted. Cancel and restore it to retain its history.`; return;
+        }
+        if (!project.plots) project.plots = [];
+        submitted = true;
+        const idx = project.plots.length;
+        project.plots.push({ plotNo, facing, area, corner: fields.namedItem('corner').checked,
+            notes: fields.namedItem('notes').value.trim(), status: 'Vacant' });
+        form.querySelector('[type="submit"]').disabled = true;
+        dialog.close();
+        mthRefreshPlotInventory();
+        const showSavedPlot = () => {
+            if (getActiveProject() !== project) return;
+            const content = document.getElementById('inventoryCollapsibleContent');
+            const toggle = document.getElementById('toggleInventoryBtn');
+            if (content) content.style.display = 'block';
+            if (toggle) toggle.textContent = '▲ Collapse Inventory';
+            localStorage.setItem('inventoryCollapsed', 'false');
+            const row = document.querySelector(`#inventoryTbody tr[data-plot-index="${idx}"]`);
+            if (row) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                row.style.outline = '3px solid #16a34a';
+                row.title = `New plot ${plotNo} saved`;
+            }
+        };
+        showSavedPlot();
+        mthPlotPopup('Plot saved',
+            `Plot ${plotNo} saved in ${project.name}.\nFacing: ${facing} · Area: ${area} sft · Status: Vacant\n\nThe inventory is expanded and the new row is outlined in green.`,
+            'View Plot', showSavedPlot, 'Done');
+    };
+    document.body.appendChild(dialog);
+    dialog.showModal();
+    dialog.querySelector('input[name="plotNo"]').focus();
+}
+
+function mthUpdateDeletedPlotButton() {
+    const button = document.getElementById('restoreDeletedPlotsBtn');
+    if (!button) return;
+    const count = (getActiveProject()?.deletedPlots || []).length;
+    button.textContent = `Restore Deleted (${count})`;
+    button.disabled = count === 0;
+}
+
+function mthRefreshPlotInventory() {
     renderInventoryTable();
     populateMultiPlotSelect();
     renderReport();
@@ -3042,13 +3131,97 @@ function addPlot() {
     autoSaveState();
 }
 
+function mthPlotPopup(title, message, actionLabel, action, dismissLabel = 'Cancel') {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'no-print';
+    dialog.style.cssText = 'border:1px solid #bac7dd;border-radius:14px;padding:22px;width:calc(100% - 32px);max-width:440px;box-sizing:border-box;color:#17233c;box-shadow:0 16px 60px #0005';
+    const heading = document.createElement('h2');
+    heading.textContent = title;
+    heading.style.cssText = 'margin:0 0 14px;font-size:20px';
+    const description = document.createElement('p');
+    description.textContent = message;
+    description.style.cssText = 'white-space:pre-line;line-height:1.6;margin:0 0 20px';
+    const controls = document.createElement('div');
+    controls.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap';
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button'; dismiss.className = 'btn'; dismiss.textContent = dismissLabel;
+    dismiss.autofocus = true;
+    dismiss.onclick = () => dialog.close();
+    const proceed = document.createElement('button');
+    proceed.type = 'button'; proceed.className = 'btn btn-danger'; proceed.textContent = actionLabel;
+    proceed.onclick = () => { dialog.close(); action(); };
+    controls.append(dismiss, proceed);
+    dialog.append(heading, description, controls);
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+}
+
 function deletePlot(idx) {
-    getActiveProject().plots.splice(idx, 1);
-    renderInventoryTable();
-    populateMultiPlotSelect();
-    renderReport();
-    updateVacantReport();
-    autoSaveState();
+    const project = getActiveProject();
+    const plot = project?.plots?.[idx];
+    if (!plot) return;
+    mthPlotPopup('Warning: delete plot ' + plot.plotNo,
+        `Project: ${project.name}\nStatus: ${plot.status || 'Vacant'} · Area: ${plot.area} sft\n\nSave Deletion removes this plot from inventory. Its details and history will remain in Restore Deleted.`,
+        'Save Deletion', () => {
+            // A cloud update or project change must never delete a different row.
+            if (getActiveProject() !== project || project.plots[idx] !== plot) {
+                alert('The inventory changed. Please check the plot and try again.'); return;
+            }
+            const entry = { plot: JSON.parse(JSON.stringify(plot)), originalIndex: idx,
+                deletedAt: new Date().toISOString(), deletionId: 'del_' + Date.now() + '_' + Math.random().toString(36).slice(2) };
+            if (!project.deletedPlots) project.deletedPlots = [];
+            project.deletedPlots.push(entry);
+            inventoryStatusDrafts.delete(plot);
+            project.plots.splice(idx, 1);
+            mthRefreshPlotInventory();
+            mthPlotPopup('Deletion saved',
+                `Plot ${plot.plotNo} has been removed.\n\nUndo restores its details and history immediately. You can also restore it later using Restore Deleted.`,
+                'Undo', () => mthUndoPlotDeletion(entry.deletionId), 'Done');
+        });
+}
+
+function mthUndoPlotDeletion(deletionId) {
+    // Resolve the current saved data even if cloud sync replaced its objects.
+    const projects = [...(appData.projects || []), ...(appData.archivedProjects || [])];
+    for (const project of projects) {
+        const index = (project.deletedPlots || []).findIndex(entry => entry.deletionId === deletionId);
+        if (index < 0) continue;
+        const entry = project.deletedPlots[index];
+        const normalize = value => String(value ?? '').trim().toUpperCase();
+        if ((project.plots || []).some(plot => normalize(plot.plotNo) === normalize(entry.plot.plotNo))) {
+            alert(`Plot ${entry.plot.plotNo} already exists. The deleted copy remains in Restore Deleted.`); return;
+        }
+        if (!project.plots) project.plots = [];
+        project.plots.splice(Math.min(entry.originalIndex, project.plots.length), 0, entry.plot);
+        project.deletedPlots.splice(index, 1);
+        mthRefreshPlotInventory();
+        return;
+    }
+    alert('This deletion is no longer available. Check the inventory or Restore Deleted.');
+}
+
+function mthRestoreDeletedPlot() {
+    const project = getActiveProject();
+    const deleted = project?.deletedPlots || [];
+    if (!deleted.length) return;
+    const options = deleted.map((entry, index) => `${index + 1}. Plot ${entry.plot.plotNo} · ${entry.plot.status || 'Vacant'} · ${entry.plot.area} sft`).join('\n');
+    const answer = prompt(`Restore a deleted plot in "${project.name}"\n\n${options}\n\nEnter the list number to restore (Cancel to leave unchanged):`);
+    if (answer === null || !answer.trim()) return;
+    const number = Number(answer);
+    if (!Number.isInteger(number) || number < 1 || number > deleted.length) {
+        alert('Please enter a valid list number.'); return;
+    }
+    const entry = deleted[number - 1];
+    const normalize = value => String(value ?? '').trim().toUpperCase();
+    if ((project.plots || []).some(plot => normalize(plot.plotNo) === normalize(entry.plot.plotNo))) {
+        alert(`Plot ${entry.plot.plotNo} already exists. Nothing was restored.`); return;
+    }
+    if (!confirm(`Restore plot ${entry.plot.plotNo} with its saved details and history?`)) return;
+    if (!project.plots) project.plots = [];
+    project.plots.splice(Math.min(entry.originalIndex, project.plots.length), 0, entry.plot);
+    deleted.splice(number - 1, 1);
+    mthRefreshPlotInventory();
 }
 
 let registryReviewProject = null;
@@ -4329,6 +4502,9 @@ function renderMemberDropdowns() {
   if (meetSelect) meetSelect.innerHTML = '<option value="">-- Select Active Member --</option>';
   if (reportsToSelect) reportsToSelect.innerHTML = '<option value="">-- Select Upline Sponsor --</option>';
 
+  (appData.mthSaleTeamDirectory || []).filter(m => m.role === 'VP' && m.active && !membersData.some(t => t.name === m.name)).forEach(m => {
+    if (reportsToSelect) reportsToSelect.add(new Option(`${m.name} (VP)`, m.name));
+  });
   membersData.forEach(m => {
     if (m.designation === 'CP') return;
     if (attSelect && ['HOT', 'WARM'].includes(m.leadStatus)) attSelect.add(new Option(`${m.name} (${m.designation})`, m.name));
@@ -4946,15 +5122,16 @@ function lockProjectBankSetup(returnToInventory) {
   <h3 id="mthSaleTitle" style="margin:0">Plot Sale Details</h3>
   <div id="mthSaleSub" class="mth-sale-hint"></div>
   <label for="mthSaleVP">VP</label><select id="mthSaleVP" onchange="mthSaleVPChanged()"></select>
-  <div id="mthSaleDVPWrap"><label for="mthSaleDVP" id="mthSaleDVPLabel">DVP</label><select id="mthSaleDVP"></select></div>
+  <div id="mthSaleDVPWrap"><label for="mthSaleDVP" id="mthSaleDVPLabel">DVP</label><select id="mthSaleDVP" onchange="mthSaleDVPChanged()"></select></div>
+  <div id="mthSaleBDMWrap" style="display:none"><label for="mthSaleBDM">BDM reporting directly to this VP</label><select id="mthSaleBDM"></select><p class="mth-sale-hint">No DVP is assigned. Add the BDM below if missing.</p></div>
   <label for="mthSaleBookingDate">Booking date</label><input type="date" id="mthSaleBookingDate">
   <label for="mthSaleRegistrationDate">Registration date</label><input type="date" id="mthSaleRegistrationDate">
   <p class="mth-sale-hint">Dates may be corrected. A cancelled booking retains its history.</p>
   <details><summary style="cursor:pointer">Manage team directory (add / edit / deactivate)</summary>
    <div id="mthSaleDirectory" style="margin-top:8px"></div>
-   <label for="mthSaleMemberName">Full name</label><input id="mthSaleMemberName" placeholder="New VP or DVP name">
+   <label for="mthSaleMemberName">Full name</label><input id="mthSaleMemberName" placeholder="New VP, DVP or direct BDM name">
    <label for="mthSaleMemberCode">Short code (editable)</label><input id="mthSaleMemberCode" placeholder="e.g. JP" maxlength="12">
-   <label for="mthSaleMemberRole">Role</label><select id="mthSaleMemberRole" onchange="mthSaleMemberRoleChanged()"><option value="DVP">DVP</option><option value="VP">VP</option></select>
+   <label for="mthSaleMemberRole">Role</label><select id="mthSaleMemberRole" onchange="mthSaleMemberRoleChanged()"><option value="DVP">DVP</option><option value="VP">VP</option><option value="BDM">BDM — directly under VP</option></select>
    <div id="mthSaleMemberVPWrap"><label for="mthSaleMemberVP">Parent VP / team</label><select id="mthSaleMemberVP"></select></div>
    <button type="button" onclick="mthAddSaleMember()" style="margin-top:8px;padding:7px">Add member</button>
   </details>
@@ -4992,7 +5169,7 @@ function renderMembers(){
  mthSaleVPChanged();
  const list=byId('mthSaleDirectory');
  list.innerHTML=members.map(x=>'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin:5px 0;font-size:12px">'+
- '<span style="flex:1;min-width:110px">'+escapeHtml(x.role+': '+x.name+(x.role==='DVP'?' · '+(members.find(v=>v.id===x.parentVPId)?.code||'Unassigned'):''))+'</span>'+
+ '<span style="flex:1;min-width:110px">'+escapeHtml(x.role+': '+x.name+(x.role!=='VP'?' · '+(members.find(v=>v.id===x.parentVPId)?.code||'Unassigned'):''))+'</span>'+
  '<input aria-label="Code for '+escapeHtml(x.name)+'" style="width:75px!important" maxlength="12" value="'+escapeHtml(x.code)+'" data-member-code="'+escapeHtml(x.id)+'">'+
  '<button type="button" data-member-toggle="'+escapeHtml(x.id)+'">'+(x.active?'Deactivate':'Activate')+'</button></div>').join('');
  list.querySelectorAll('[data-member-code]').forEach(input=>input.addEventListener('change',()=>{
@@ -5005,7 +5182,7 @@ function renderMembers(){
  }));
 }
 window.mthSaleMemberRoleChanged=function(){
- byId('mthSaleMemberVPWrap').style.display=byId('mthSaleMemberRole').value==='DVP'?'block':'none';
+ byId('mthSaleMemberVPWrap').style.display=byId('mthSaleMemberRole').value!=='VP'?'block':'none';
 };
 window.mthSaleVPChanged=function(){
  const selected=byId('mthSaleVP').value;
@@ -5015,6 +5192,20 @@ window.mthSaleVPChanged=function(){
  byId('mthSaleDVPLabel').textContent='DVP under '+(vp?.name||'selected VP')+(selected==='vp-anu'?'':' (optional)');
  const previous=byId('mthSaleDVP').value;
  byId('mthSaleDVP').innerHTML='<option value="">'+(selected==='vp-anu'?'Select DVP':'VP only / DVP unknown')+'</option>'+directory().filter(x=>x.role==='DVP'&&x.parentVPId===selected&&(x.active||x.id===previous)).map(x=>option(x,previous)).join('');
+ byId('mthSaleDVP').insertAdjacentHTML('beforeend','<option value="__direct_vp__"'+(previous==='__direct_vp__'?' selected':'')+'>Direct BDM → VP (No DVP)</option>');
+ mthSaleDVPChanged();
+};
+function directBDMs(vpId){
+ const vp=directory().find(x=>x.id===vpId);
+ const saved=directory().filter(x=>x.role==='BDM'&&x.parentVPId===vpId);
+ const team=membersData.filter(x=>x.designation==='BDM'&&vp&&x.reportsTo===vp.name&&!saved.some(y=>y.name===x.name)).map(x=>({id:'team-bdm:'+x.name,name:x.name,code:'BDM',active:true,parentVPId:vpId,role:'BDM'}));
+ return [...saved,...team];
+}
+window.mthSaleDVPChanged=function(){
+ const direct=byId('mthSaleDVP').value==='__direct_vp__';
+ byId('mthSaleBDMWrap').style.display=direct?'block':'none';
+ const previous=byId('mthSaleBDM').value;
+ byId('mthSaleBDM').innerHTML='<option value="">Select BDM</option>'+directBDMs(byId('mthSaleVP').value).filter(x=>x.active||x.id===previous).map(x=>option(x,previous)).join('');
 };
 window.mthOpenSaleDetails=function(idx){
  const p=getActiveProject(),plot=p?.plots?.[idx];if(!plot)return;
@@ -5032,7 +5223,12 @@ window.mthOpenSaleDetails=function(idx){
  if(sale.dvpId && !members.some(x=>x.id===sale.dvpId&&x.active)){
   const old=members.find(x=>x.id===sale.dvpId);if(old)byId('mthSaleDVP').insertAdjacentHTML('beforeend',option(old,sale.dvpId));
  }
- byId('mthSaleDVP').value=sale.dvpId||'';
+ byId('mthSaleDVP').value=sale.reportingMode==='bdm-vp'?'__direct_vp__':(sale.dvpId||'');
+ mthSaleDVPChanged();
+ if(sale.reportingMode==='bdm-vp'&&sale.bdmId&&!directBDMs(sale.vpId).some(x=>x.id===sale.bdmId)){
+  byId('mthSaleBDM').insertAdjacentHTML('beforeend',option({id:sale.bdmId,name:sale.bdmName||'Previously recorded BDM',code:'BDM'},sale.bdmId));
+ }
+ byId('mthSaleBDM').value=sale.bdmId||'';
  // Existing plots remain undated until a user confirms dates. New booked/sold plots suggest today.
  const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});
  const isoToday=(()=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const v=k=>parts.find(p=>p.type===k).value;return v('year')+'-'+v('month')+'-'+v('day')})();
@@ -5044,14 +5240,23 @@ window.mthCloseSaleDetails=function(){byId('mthSaleOverlay').style.display='none
 window.mthSaveSaleDetails=function(){
  if(editIdx===null||!editProject)return;
  const plot=editProject.plots[editIdx];if(!plot)return;
- const vpId=byId('mthSaleVP').value,dvpId=vpId?(byId('mthSaleDVP').value||null):null;
+ const vpId=byId('mthSaleVP').value;
+ const direct=byId('mthSaleDVP').value==='__direct_vp__';
+ const dvpId=vpId&&!direct?(byId('mthSaleDVP').value||null):null;
+ const previous=plot.mthSaleDetails||{};
+ const bdmId=direct?byId('mthSaleBDM').value:null;
+ const bdm=directBDMs(vpId).find(x=>x.id===bdmId);
+ const retained=direct&&previous.reportingMode==='bdm-vp'&&previous.vpId===vpId&&previous.bdmId===bdmId;
+ if(direct&&(!vpId||!bdmId||(!bdm&&!retained))){alert('Select the BDM reporting directly to this VP.');return;}
  if(dvpId&&!directory().some(x=>x.id===dvpId&&x.role==='DVP'&&x.parentVPId===vpId)){alert('Select a DVP belonging to the selected VP.');return;}
- if(vpId==='vp-anu'&&!dvpId){alert('Select one DVP for Anu’s division.');return;}
+ if(vpId==='vp-anu'&&!dvpId&&!direct){alert('Select one DVP for Anu’s division.');return;}
  const bookingDate=byId('mthSaleBookingDate').value,registrationDate=byId('mthSaleRegistrationDate').value;
  if(registrationDate&&bookingDate&&registrationDate<bookingDate){alert('Registration date cannot be earlier than booking date.');return;}
- const previous=plot.mthSaleDetails||{};
  const next={vpId:vpId||null,dvpId,bookingDate,registrationDate};
- const changed=JSON.stringify({vpId:previous.vpId||null,dvpId:previous.dvpId||null,bookingDate:previous.bookingDate||'',registrationDate:previous.registrationDate||''})!==JSON.stringify(next);
+ if(direct)Object.assign(next,{reportingMode:'bdm-vp',bdmId,bdmName:bdm?.name||previous.bdmName||''});
+ const comparable={vpId:previous.vpId||null,dvpId:previous.dvpId||null,bookingDate:previous.bookingDate||'',registrationDate:previous.registrationDate||''};
+ if(previous.reportingMode==='bdm-vp')Object.assign(comparable,{reportingMode:'bdm-vp',bdmId:previous.bdmId,bdmName:previous.bdmName||''});
+ const changed=JSON.stringify(comparable)!==JSON.stringify(next);
  if(changed){
   if(!Array.isArray(plot.mthSaleHistory))plot.mthSaleHistory=[];
   if(plot.mthSaleDetails)plot.mthSaleHistory.push({details:{...previous},changedAt:new Date().toISOString()});
@@ -5066,8 +5271,8 @@ window.mthAddSaleMember=function(){
  const name=byId('mthSaleMemberName').value.trim(),code=byId('mthSaleMemberCode').value.trim().toUpperCase(),role=byId('mthSaleMemberRole').value;
  if(!name||!code){alert('Enter name and short code.');return;}
  if(directory().some(x=>x.code.toUpperCase()===code)){alert('Short code already in use. Choose another.');return;}
- const parentVPId=role==='DVP'?byId('mthSaleMemberVP').value:null;
- if(role==='DVP'&&!directory().some(x=>x.id===parentVPId&&x.role==='VP'&&x.active)){alert('Select the parent VP for this DVP.');return;}
+ const parentVPId=role!=='VP'?byId('mthSaleMemberVP').value:null;
+ if(role!=='VP'&&!directory().some(x=>x.id===parentVPId&&x.role==='VP'&&x.active)){alert('Select the parent VP for this member.');return;}
  directory().push({id:'member-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),name,code,role,parentVPId,active:true});
  byId('mthSaleMemberName').value='';byId('mthSaleMemberCode').value='';autoSaveState();renderMembers();
 };
@@ -5118,24 +5323,25 @@ window.mthOpenHistoryReport=function(){
  el('mthHistProject').innerHTML='<option value="">All projects</option>'+(appData.projects||[]).map((p,i)=>'<option value="'+i+'">'+esc(p.name)+'</option>').join('');
  el('mthHistProject').value=String(appData.activeProjectIndex||0);
  el('mthHistVP').innerHTML='<option value="">All VPs</option>'+opts('VP');
- el('mthHistDVP').innerHTML='<option value="">All DVPs</option>'+opts('DVP');
+ el('mthHistDVP').innerHTML='<option value="">All DVPs / reporting paths</option><option value="__direct_vp__">Direct BDM → VP (No DVP)</option>'+opts('DVP');
  el('mthHistoryOverlay').style.display='block';mthRenderHistoryReport();
 };
-window.mthHistoryVPChanged=function(){el('mthHistDVP').innerHTML='<option value="">All DVPs</option>'+opts('DVP',el('mthHistVP').value);mthRenderHistoryReport();};
+window.mthHistoryVPChanged=function(){el('mthHistDVP').innerHTML='<option value="">All DVPs / reporting paths</option><option value="__direct_vp__">Direct BDM → VP (No DVP)</option>'+opts('DVP',el('mthHistVP').value);mthRenderHistoryReport();};
 function filtered(){const project=el('mthHistProject').value,from=el('mthHistFrom').value,to=el('mthHistTo').value,vp=el('mthHistVP').value,dvp=el('mthHistDVP').value;
  if(from&&to&&from>to)return [];
  if(el('mthHistView').value==='summary')return mthBuildTeamSummary(appData.projects,{project,from,to,vp,dvp});
- return mthBuildHistoryRows(appData.projects).filter(r=>{const d=day(r.at);return(project===''||r.projectIndex===Number(project))&&(!from||(d&&d>=from))&&(!to||(d&&d<=to))&&(!vp||r.sale.vpId===vp)&&(!dvp||r.sale.dvpId===dvp);}).sort((a,b)=>team(a.sale.vpId).localeCompare(team(b.sale.vpId))||team(a.sale.dvpId).localeCompare(team(b.sale.dvpId))||(Date.parse(b.at)||0)-(Date.parse(a.at)||0));}
+ return mthBuildHistoryRows(appData.projects).filter(r=>{const d=day(r.at);return(project===''||r.projectIndex===Number(project))&&(!from||(d&&d>=from))&&(!to||(d&&d<=to))&&(!vp||r.sale.vpId===vp)&&matchesPath(r.sale,dvp);}).sort((a,b)=>team(a.sale.vpId).localeCompare(team(b.sale.vpId))||team(a.sale.dvpId).localeCompare(team(b.sale.dvpId))||(Date.parse(b.at)||0)-(Date.parse(a.at)||0));}
+function matchesPath(sale,value){return !value||(value==='__direct_vp__'?sale.reportingMode==='bdm-vp':sale.dvpId===value);}
 window.mthBuildTeamSummary=function(projects,f={}){
  const groups=new Map(),members=appData.mthSaleTeamDirectory||[];
  const name=(id,fallback)=>{const m=members.find(x=>x.id===id);return m?m.name+' ('+m.code+')':fallback;};
  (projects||[]).forEach((p,pi)=>{if(f.project!==undefined&&f.project!==''&&pi!==Number(f.project))return;
  (p.plots||[]).forEach(plot=>{if(!['Booked','Sold'].includes(plot.status))return;const sale=plot.mthSaleDetails||{};
- if(f.vp&&sale.vpId!==f.vp||f.dvp&&sale.dvpId!==f.dvp)return;
+ if(f.vp&&sale.vpId!==f.vp||!matchesPath(sale,f.dvp))return;
  const date=plot.status==='Sold'?sale.registrationDate:sale.bookingDate;
  if(f.from&&(!date||date<f.from)||f.to&&(!date||date>f.to))return;
- const key=JSON.stringify([sale.vpId||'',sale.dvpId||'']);
- if(!groups.has(key))groups.set(key,{vpId:sale.vpId||'',vp:name(sale.vpId,'VP unrecorded'),dvp:name(sale.dvpId,'DVP unrecorded / VP only'),booked:0,bookedArea:0,sold:0,soldArea:0});
+ const key=JSON.stringify([sale.vpId||'',sale.dvpId||'',sale.reportingMode||'',sale.bdmId||'']);
+ if(!groups.has(key))groups.set(key,{vpId:sale.vpId||'',vp:name(sale.vpId,'VP unrecorded'),dvp:sale.reportingMode==='bdm-vp'?'Direct to VP · '+(sale.bdmName||name(sale.bdmId,'BDM unrecorded')):name(sale.dvpId,'DVP unrecorded / VP only'),booked:0,bookedArea:0,sold:0,soldArea:0});
  const r=groups.get(key),kind=plot.status==='Sold'?'sold':'booked';r[kind]++;r[kind+'Area']+=Number(plot.area)||0;
  });});
  const sorted=[...groups.values()].sort((a,b)=>a.vp.localeCompare(b.vp)||a.dvp.localeCompare(b.dvp)),out=[];
@@ -5144,11 +5350,11 @@ window.mthBuildTeamSummary=function(projects,f={}){
  for(const r of sorted){if(sub&&sub.vpId!==r.vpId){out.push(sub);sub=null;}if(!sub)sub={vpId:r.vpId,vp:r.vp+' subtotal',dvp:'',booked:0,bookedArea:0,sold:0,soldArea:0,total:true};out.push(r);keys.forEach(k=>{sub[k]+=r[k];total[k]+=r[k];});}
  if(sub){out.push(sub);out.push(total);}return out;
 };
-function summaryTable(rows){const headers=['VP','DVP','Booked plots','Booked area (sft)','Sold plots','Sold area (sft)','Total plots'];return '<table class="team-summary"><thead><tr>'+headers.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr'+(r.total?' style="font-weight:bold;background:#edf2f7"':'')+'>'+[r.vp,r.dvp,r.booked,r.bookedArea,r.sold,r.soldArea,r.booked+r.sold].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
-const heads=['Sl.','Project','Plot','Area (sft)','Status / event','Recorded on (IST)','VP','DVP','Booking date','Registration date'];
+function summaryTable(rows){const headers=['VP','DVP / Direct BDM','Booked plots','Booked area (sft)','Sold plots','Sold area (sft)','Total plots'];return '<table class="team-summary"><thead><tr>'+headers.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr'+(r.total?' style="font-weight:bold;background:#edf2f7"':'')+'>'+[r.vp,r.dvp,r.booked,r.bookedArea,r.sold,r.soldArea,r.booked+r.sold].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
+const heads=['Sl.','Project','Plot','Area (sft)','Status / event','Recorded on (IST)','VP','DVP / Direct BDM','Booking date','Registration date'];
 function team(id){const m=(appData.mthSaleTeamDirectory||[]).find(x=>x.id===id);return m?m.code:'';}
-function table(rows,offset=0){if(el('mthHistView').value==='summary')return summaryTable(rows);return '<table><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map((r,i)=>'<tr>'+[offset+i+1,r.project,r.plot,r.area,r.event,stamp(r.at),team(r.sale.vpId),team(r.sale.dvpId),r.sale.bookingDate||'',r.sale.registrationDate||''].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
-window.mthRenderHistoryReport=function(){const rows=filtered();el('mthHistoryCount').textContent=el('mthHistView').value==='summary'?(rows.filter(r=>!r.total).length+' DVP / VP-only groups · '+(rows.at(-1)?rows.at(-1).booked+rows.at(-1).sold:0)+' plots'):rows.length+' history entries · '+new Set(rows.map(r=>r.projectIndex+'|'+r.plot)).size+' plots';el('mthHistoryPreview').innerHTML=rows.length?table(rows):'<p>No matching history entries.</p>';};
+function table(rows,offset=0){if(el('mthHistView').value==='summary')return summaryTable(rows);return '<table><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map((r,i)=>'<tr>'+[offset+i+1,r.project,r.plot,r.area,r.event,stamp(r.at),team(r.sale.vpId),r.sale.reportingMode==='bdm-vp'?'Direct: '+(r.sale.bdmName||team(r.sale.bdmId)):team(r.sale.dvpId),r.sale.bookingDate||'',r.sale.registrationDate||''].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
+window.mthRenderHistoryReport=function(){const rows=filtered();el('mthHistoryCount').textContent=el('mthHistView').value==='summary'?(rows.filter(r=>!r.total).length+' team / direct BDM groups · '+(rows.at(-1)?rows.at(-1).booked+rows.at(-1).sold:0)+' plots'):rows.length+' history entries · '+new Set(rows.map(r=>r.projectIndex+'|'+r.plot)).size+' plots';el('mthHistoryPreview').innerHTML=rows.length?table(rows):'<p>No matching history entries.</p>';};
 window.mthPrintHistoryReport=function(){
  const rows=filtered();if(!rows.length){alert('No matching history entries to print.');return;}
  const win=window.open('','_blank');if(!win){alert('Allow pop-ups to open the print preview.');return;}
