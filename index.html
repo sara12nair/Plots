@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261028_0952 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261028_1000 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -1090,11 +1090,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261028_0952 IST">
+    <div class="app-brand-strip no-print" title="Release 261028_1000 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261028_0952 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261028_0952 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261028_1000 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261028_1000 IST</span>
         </div>
     </div>
 
@@ -1165,7 +1165,7 @@
                         <option value="SOUTH">S — South</option><option value="SOUTH WEST">SW — South West</option>
                         <option value="WEST">W — West</option><option value="NORTH WEST">NW — North West</option>
                     </select></div>
-                    <span id="mthGroupingLabel" style="font-size:.75rem;font-weight:700">Grouped by FACE → Area</span>
+                    <div class="form-group"><label for="mthGroupingSelect">Group by</label><select id="mthGroupingSelect" onchange="updateVacantReport()"><option value="area" selected>Area</option><option value="facing">FACE</option></select></div>
                     <button type="button" id="mthAreaPrev" class="btn btn-outline" onclick="mthStepArea(-1)" title="Previous available plot size" aria-label="Previous available plot size">◀</button>
                     <div class="form-group"><label for="vacantAreaFrom">From (SFT)</label><input id="vacantAreaFrom" type="number" min="0" step="1" placeholder="e.g. 600" style="width:100px" oninput="mthAreaFromChanged()"></div>
                     <div class="form-group"><label for="vacantAreaTo">To (SFT)</label><input id="vacantAreaTo" type="number" min="0" step="1" placeholder="e.g. 700" style="width:100px" oninput="mthAreaToChanged()"></div>
@@ -3773,7 +3773,10 @@ function mthGetAreaFilter() {
         to: mthAreaFilterApplied ? f.to : null};
 }
 
-// All directions group by FACE, then area; a single direction groups by area.
+// Display grouping does not change stored inventory or the selected FACE filter.
+function mthGroupByFacing() {
+    return !mthGetFaceFilter() && document.getElementById('mthGroupingSelect')?.value === 'facing';
+}
 function mthFacingKey(plot) {
     const key = String(plot.facing || '').trim().toUpperCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
     const compact = key.replace(/ /g, '');
@@ -3787,7 +3790,7 @@ function mthOrderVacantPlots(plots) {
     return [...plots].sort((a,b) => {
         const area = Number(a.area || 0) - Number(b.area || 0);
         const facing = rank(a)-rank(b) || mthFacingKey(a).localeCompare(mthFacingKey(b));
-        return (!mthGetFaceFilter() ? facing || area : area || facing) ||
+        return (mthGroupByFacing() ? facing || area : area || facing) ||
             String(a.plotNo).localeCompare(String(b.plotNo), undefined, {numeric:true});
     });
 }
@@ -3824,7 +3827,6 @@ function updateVacantReport() {
     const allVacantPlots = (p.plots || []).filter(plot => String(plot.status || 'Vacant').trim().toLowerCase() === 'vacant');
     mthUpdateFaceAvailability(allVacantPlots);
     const faceFilter = mthGetFaceFilter();
-    document.getElementById('mthGroupingLabel').textContent = faceFilter ? 'Grouped by Area' : 'Grouped by FACE → Area';
     const vacantPlots = allVacantPlots.filter(plot => (!faceFilter || mthFacingKey(plot) === faceFilter) && areaFilter.valid &&
         (areaFilter.from === null || Number(plot.area) >= areaFilter.from) &&
         (areaFilter.to === null || Number(plot.area) <= areaFilter.to));
@@ -3898,7 +3900,7 @@ function updateVacantReport() {
         const facingKey = mthFacingKey;
         const areaLabel = plot => `${Number(plot.area || 0).toLocaleString('en-IN')} SFT`;
         const facingLabel = plot => `${facingKey(plot)} FACING`;
-        const groupByFacing = !faceFilter;
+        const groupByFacing = mthGroupByFacing();
         const primaryGroup = groupByFacing ? facingLabel : areaLabel;
         const secondaryGroup = groupByFacing ? areaLabel : facingLabel;
         let previousGroup = null, previousFacing = null;
@@ -3918,7 +3920,7 @@ function updateVacantReport() {
                 previousFacing = null;
             }
             const facing = secondaryGroup(plot);
-            if (!faceFilter && (group !== previousGroup || facing !== previousFacing)) {
+            if (groupByFacing && (group !== previousGroup || facing !== previousFacing)) {
                 const facingPlots = orderedPlots.filter(item => primaryGroup(item) === group && secondaryGroup(item) === facing);
                 const heading = document.createElement('tr');
                 heading.className = 'mth-vacant-facing-heading';
