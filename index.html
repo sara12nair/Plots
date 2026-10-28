@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261027_2141 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 261028_0937 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -270,9 +270,9 @@
         @media print { #vacantCompactAreaSummary th, #vacantCompactAreaSummary td { font-size: 6.2pt !important; padding: 2px 1px !important; } }
         @media print { #mthPrintAreaSummary { display: none !important; } }
         .mth-range-banner { margin:5px 0 7px; padding:7px 10px; text-align:center; background:#eaf2ff; border:1.5px solid #1d4ed8; border-radius:5px; color:#173a7a; }
-        .mth-range-banner .range-title { font-size:14px; font-weight:800; letter-spacing:.4px; }
+        .mth-range-banner .range-title { font-size:26px; line-height:1.15; font-weight:900; letter-spacing:.5px; }
         .mth-range-banner .range-count { font-size:11px; font-weight:700; margin-top:2px; }
-        @media print { .mth-range-banner { break-inside:avoid; padding:5px 8px; } .mth-range-banner .range-title { font-size:12pt; } .mth-range-banner .range-count { font-size:9pt; } }
+        @media print { .mth-range-banner { break-inside:avoid; padding:5px 8px; } .mth-range-banner .range-title { font-size:18pt; line-height:1.15; font-weight:900; } .mth-range-banner .range-count { font-size:9pt; } }
         @media print { #printableVacantReport th { font-size:5pt !important; } #printableVacantReport td { font-size:6.4pt !important; } }
 
         #inventoryTbody th, #inventoryTbody td, 
@@ -1064,17 +1064,36 @@
  #printableVacantReport #vacantCompactAreaTable th,
  #printableVacantReport #vacantCompactAreaTable td { padding:2px 2px!important; font-size:6.2pt!important; }
 }
+
+/* Repeat project and selected FACE in the top margin on every vacant-report page. */
+@media print {
+  html[data-print-report="vacant"] { page: mth-vacant; }
+  @page mth-vacant {
+    margin-top: 14mm;
+    @top-center {
+      content: attr(data-print-project-name) " · " attr(data-print-vacant-face);
+      white-space: nowrap;
+      font-family: Arial, sans-serif;
+      font-size: 8pt;
+      line-height: 1.15;
+      font-weight: 800;
+      color: #173a7a;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+  }
+}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 261027_2141 IST">
+    <div class="app-brand-strip no-print" title="Release 261028_0937 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 261027_2141 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 261027_2141 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 261028_0937 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 261028_0937 IST</span>
         </div>
     </div>
 
@@ -1138,6 +1157,13 @@
 
                 <div class="toolbar no-print" style="margin:6px 0;align-items:end" id="vacantAreaFilterBar">
                     <strong style="font-size:.8rem">📐 Vacant plots by area</strong>
+                    <div class="form-group"><label for="vacantFaceFilter">FACE</label><select id="vacantFaceFilter" onchange="updateVacantReport()" style="min-width:120px">
+                        <option value="">All directions</option>
+                        <option value="NORTH">N — North</option><option value="NORTH EAST">NE — North East</option>
+                        <option value="EAST">E — East</option><option value="SOUTH EAST">SE — South East</option>
+                        <option value="SOUTH">S — South</option><option value="SOUTH WEST">SW — South West</option>
+                        <option value="WEST">W — West</option><option value="NORTH WEST">NW — North West</option>
+                    </select></div>
                     <button type="button" id="mthGroupingToggle" class="btn btn-outline" onclick="mthTogglePlotGrouping()" aria-pressed="false">Group by facing</button>
                     <button type="button" id="mthAreaPrev" class="btn btn-outline" onclick="mthStepArea(-1)" title="Previous available plot size" aria-label="Previous available plot size">◀</button>
                     <div class="form-group"><label for="vacantAreaFrom">From (SFT)</label><input id="vacantAreaFrom" type="number" min="0" step="1" placeholder="e.g. 600" style="width:100px" oninput="mthAreaFromChanged()"></div>
@@ -1206,7 +1232,7 @@
                     </div>
 
                     <div class="mth-range-banner" aria-live="polite">
-                        <div class="range-title" id="mthVacantRangeHeading">ALL VACANT PLOTS</div>
+                        <div class="range-title" id="mthVacantRangeHeading">ALL AVAILABLE PLOTS</div>
                         <div class="range-count" id="mthVacantRangeCount">0 PLOTS AVAILABLE | 0 SFT TOTAL</div>
                     </div>
                     <!-- Compact project inventory KPIs: project totals stay unchanged by area filter -->
@@ -3756,7 +3782,10 @@ function mthTogglePlotGrouping() {
     updateVacantReport();
 }
 function mthFacingKey(plot) {
-    const key = String(plot.facing || '').trim().toUpperCase();
+    const key = String(plot.facing || '').trim().toUpperCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
+    const compact = key.replace(/ /g, '');
+    const diagonal = {NORTHEAST:'NORTH EAST',NORTHWEST:'NORTH WEST',SOUTHEAST:'SOUTH EAST',SOUTHWEST:'SOUTH WEST'};
+    if (diagonal[compact]) return diagonal[compact];
     return ({N:'NORTH',E:'EAST',S:'SOUTH',W:'WEST',NE:'NORTH EAST',NW:'NORTH WEST',SE:'SOUTH EAST',SW:'SOUTH WEST'})[key] || key || 'UNSPECIFIED';
 }
 function mthOrderVacantPlots(plots) {
@@ -3770,19 +3799,25 @@ function mthOrderVacantPlots(plots) {
     });
 }
 
+function mthGetFaceFilter() {
+    return document.getElementById('vacantFaceFilter')?.value || '';
+}
+
 function updateVacantReport() {
     mthUpdateAreaArrows();
     const p = getActiveProject();
     const areaFilter = mthGetAreaFilter();
     const allVacantPlots = (p.plots || []).filter(plot => String(plot.status || 'Vacant').trim().toLowerCase() === 'vacant');
-    const vacantPlots = allVacantPlots.filter(plot => areaFilter.valid &&
+    const faceFilter = mthGetFaceFilter();
+    const vacantPlots = allVacantPlots.filter(plot => (!faceFilter || mthFacingKey(plot) === faceFilter) && areaFilter.valid &&
         (areaFilter.from === null || Number(plot.area) >= areaFilter.from) &&
         (areaFilter.to === null || Number(plot.area) <= areaFilter.to));
     const rangeText = areaFilter.active ? `${areaFilter.from ?? 'Any'}–${areaFilter.to ?? 'Any'} SFT` : 'All areas';
+    document.documentElement.setAttribute('data-print-vacant-face', faceFilter ? `${faceFilter} FACING PLOTS` : 'ALL AVAILABLE PLOTS');
     document.getElementById('vacantReportSubtitle').textContent = 'VACANT PLOTS AVAILABILITY REPORT';
-    document.getElementById('mthVacantRangeHeading').textContent = areaFilter.active ? `VACANT PLOTS · ${rangeText}` : 'ALL VACANT PLOTS';
-    document.getElementById('mthVacantRangeCount').textContent = `${vacantPlots.length} PLOT${vacantPlots.length === 1 ? '' : 'S'} AVAILABLE | ${vacantPlots.reduce((sum, plot) => sum + Number(plot.area || 0), 0).toLocaleString('en-IN')} SFT TOTAL`;
-    document.getElementById('vacantAreaMatches').textContent = !mthReadAreaInputs().valid ? '⚠ Invalid range — edit before Apply' : areaFilter.active ? `${vacantPlots.length} matching vacant plots (of ${allVacantPlots.length})` : `${allVacantPlots.length} vacant plots · suggested range (click Apply)`;
+    document.getElementById('mthVacantRangeHeading').textContent = faceFilter ? `${faceFilter} FACING PLOTS` : 'ALL AVAILABLE PLOTS';
+    document.getElementById('mthVacantRangeCount').textContent = `${vacantPlots.length} PLOT${vacantPlots.length === 1 ? '' : 'S'} AVAILABLE | ${vacantPlots.reduce((sum, plot) => sum + Number(plot.area || 0), 0).toLocaleString('en-IN')} SFT TOTAL${areaFilter.active ? ' · AREA: ' + rangeText : ''}`;
+    document.getElementById('vacantAreaMatches').textContent = !mthReadAreaInputs().valid ? '⚠ Invalid range — edit before Apply' : (areaFilter.active || faceFilter) ? `${vacantPlots.length} matching vacant plots (of ${allVacantPlots.length})` : `${allVacantPlots.length} vacant plots · suggested range (click Apply)`;
     const byArea = new Map();
     vacantPlots.forEach(plot => { const area = Number(plot.area || 0); byArea.set(area, (byArea.get(area) || 0) + 1); });
     document.getElementById('vacantAreaBreakdownSummary').textContent = `📐 Available by Area · ${vacantPlots.length} plots · ${vacantPlots.reduce((sum, plot) => sum + Number(plot.area || 0), 0).toLocaleString('en-IN')} SFT`;
@@ -3841,7 +3876,7 @@ function updateVacantReport() {
     let totalArea = 0, totalPrice = 0, totalPlotCost = 0, totalRegnDoc = 0;
 
     if (vacantPlots.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 8px;">No vacant plots match the selected area range.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 8px;">No vacant plots match the selected filters.</td></tr>`;
     } else {
         const orderedPlots = mthOrderVacantPlots(vacantPlots);
         const facingKey = mthFacingKey;
@@ -3945,6 +3980,7 @@ function getPdfTimestamp(date = new Date()) {
 function triggerBookingCostSheetPrint() {
     updateReportTimestamp();
     document.body.classList.remove('printing-vacant-report');
+    document.documentElement.removeAttribute('data-print-report');
     const p = getActiveProject();
     const isQuote = document.getElementById("docTypeQuote") ? document.getElementById("docTypeQuote").checked : true;
     const docTypeLabel = isQuote ? "Estimate" : "Booking";
@@ -3963,6 +3999,7 @@ function triggerVacantReportPrint() {
     updateReportTimestamp();
     updateVacantReport();
     document.body.classList.add('printing-vacant-report');
+    document.documentElement.setAttribute('data-print-report', 'vacant');
     
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
@@ -3980,10 +4017,13 @@ function triggerVacantReportPrint() {
         locationName = p.name.trim();
     }
     
-    document.title = `${locationName} - Vacant Plots - ${yy}_${mm}${dd}_${hours}${minutes}`;
+    document.title = `${locationName} - Vacant Plots${mthGetFaceFilter() ? " - " + mthGetFaceFilter() + " FACE" : ""} - ${yy}_${mm}${dd}_${hours}${minutes}`;
     setTimeout(() => {
         window.print();
-        setTimeout(() => { document.body.classList.remove('printing-vacant-report'); }, 500);
+        setTimeout(() => {
+            document.body.classList.remove('printing-vacant-report');
+            document.documentElement.removeAttribute('data-print-report');
+        }, 500);
     }, 100);
 }
 
