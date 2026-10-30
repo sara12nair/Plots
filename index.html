@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 2610_29_0945 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 2610_30_1220 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -1045,14 +1045,24 @@
 
 /* Collapsible live preview: screen only. Printing always retains the full report. */
 @media screen {
-  #printableVacantReport.mth-summary-collapsed { display:none !important; }
-  .mth-summary-toggle-row { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
-  .mth-summary-toggle-row h3 { margin:0; }
-  #mthSummaryToggle { min-width:100px; }
+  #printableVacantReport.mth-summary-collapsed > .report-header,
+  #printableVacantReport.mth-summary-collapsed > .mth-summary-kpis,
+  #printableVacantReport.mth-summary-collapsed > #vacantAreaBreakdown,
+  #printableVacantReport.mth-summary-collapsed > #mthPrintAreaSummary,
+  #printableVacantReport.mth-summary-collapsed > .signature-section,
+  #printableVacantReport.mth-summary-collapsed > #vacantCompactAreaSummary { display:none !important; }
+  #printableVacantReport.mth-summary-collapsed { padding:4px 0; border:0; box-shadow:none; }
+  #printableVacantReport.mth-summary-collapsed .mth-range-banner { margin:2px 0 5px; padding:4px 7px; }
+  #printableVacantReport.mth-summary-collapsed .mth-range-banner .range-title { font-size:15px; }
+  #printableVacantReport.mth-summary-collapsed .mth-range-banner .range-count { font-size:11px; }
+  .mth-summary-toggle-row { display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:nowrap; }
+  .mth-summary-compact-header { padding:3px 0; }
+  .mth-summary-toggle-row h3 { margin:0; min-width:0; font-size:.78rem; }
+  #mthSummaryToggle { min-width:82px; min-height:28px; padding:3px 7px; flex-shrink:0; }
 }
-@media print { #printableVacantReport.mth-summary-collapsed { display:block !important; } }
 
-@media screen { .screen-card-only:has(#mthSummaryToggle[aria-expanded="false"]) .mth-summary-help { display:none; } }
+
+
 </style>
 <style>
 /* MTH 2026-10-24: vacant-report column redistribution only. */
@@ -1101,11 +1111,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 2610_29_0945 IST">
+    <div class="app-brand-strip no-print" title="Release 2610_30_1220 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 2610_29_0945 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 2610_29_0945 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 2610_30_1220 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 2610_30_1220 IST</span>
         </div>
     </div>
 
@@ -1226,16 +1236,13 @@
 
             <!-- LIVE VACANT PLOTS SUMMARY REPORT PREVIEW -->
             <div class="card" style="border: none; padding: 0; box-shadow: none;">
-                <div class="screen-card-only no-print">
+                <div class="screen-card-only no-print mth-summary-compact-header">
                     <div class="mth-summary-toggle-row">
-                        <h3>👁️ Stock Availability Summary (Live Preview)</h3>
-                        <button type="button" class="btn btn-outline" id="mthSummaryToggle" aria-controls="printableVacantReport" aria-expanded="false" onclick="mthToggleSummaryPreview()">▼ Expand</button>
+                        <h3>📋 Available Plots · Stock Summary</h3>
+                        <button type="button" class="btn btn-outline" id="mthSummaryToggle" aria-controls="printableVacantReport" aria-expanded="false" onclick="mthToggleSummaryPreview()">▼ Show Summary</button>
                     </div>
-                    <p class="text-muted no-print mth-summary-help" style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px;">
-                        This summary updates dynamically. Click <strong>"🖨️ Print Vacant Report"</strong> above to save or print as PDF.
-                    </p>
                 </div>
-                
+
                 <div id="printableVacantReport" class="mth-summary-collapsed">
                     <div class="report-header">
                         <div>
@@ -6269,7 +6276,7 @@ function mthToggleSummaryPreview() {
   const button = document.getElementById('mthSummaryToggle');
   if (!report || !button) return;
   const collapsed = report.classList.toggle('mth-summary-collapsed');
-  button.textContent = collapsed ? '▼ Expand' : '▲ Collapse';
+  button.textContent = collapsed ? '▼ Show Summary' : '▲ Hide Summary';
   button.setAttribute('aria-expanded', String(!collapsed));
 }
 </script>
