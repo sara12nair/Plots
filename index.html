@@ -1042,6 +1042,17 @@
   #printableVacantReport #vacantCompactAreaTable { min-width:620px; }
 }
 
+
+/* Collapsible live preview: screen only. Printing always retains the full report. */
+@media screen {
+  #printableVacantReport.mth-summary-collapsed { display:none !important; }
+  .mth-summary-toggle-row { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .mth-summary-toggle-row h3 { margin:0; }
+  #mthSummaryToggle { min-width:100px; }
+}
+@media print { #printableVacantReport.mth-summary-collapsed { display:block !important; } }
+
+@media screen { .screen-card-only:has(#mthSummaryToggle[aria-expanded="false"]) .mth-summary-help { display:none; } }
 </style>
 <style>
 /* MTH 2026-10-24: vacant-report column redistribution only. */
@@ -1216,13 +1227,16 @@
             <!-- LIVE VACANT PLOTS SUMMARY REPORT PREVIEW -->
             <div class="card" style="border: none; padding: 0; box-shadow: none;">
                 <div class="screen-card-only no-print">
-                    <h3>👁️ Stock Availability Summary (Live Preview)</h3>
-                    <p class="text-muted no-print" style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px;">
+                    <div class="mth-summary-toggle-row">
+                        <h3>👁️ Stock Availability Summary (Live Preview)</h3>
+                        <button type="button" class="btn btn-outline" id="mthSummaryToggle" aria-controls="printableVacantReport" aria-expanded="false" onclick="mthToggleSummaryPreview()">▼ Expand</button>
+                    </div>
+                    <p class="text-muted no-print mth-summary-help" style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px;">
                         This summary updates dynamically. Click <strong>"🖨️ Print Vacant Report"</strong> above to save or print as PDF.
                     </p>
                 </div>
                 
-                <div id="printableVacantReport">
+                <div id="printableVacantReport" class="mth-summary-collapsed">
                     <div class="report-header">
                         <div>
                             <img id="vacantDisplayLogo" class="brand-logo" src="" alt="Project Logo" style="display: block;">
@@ -6248,5 +6262,16 @@ function mthPdfDailyLogs(){renderDailyLogsTable();const holder=document.createEl
 function mthPdfProjectInfo(){const p=mthInfoCurrent();if(!p){alert('The selected project changed. Reopen Project Info.');return;}mthPdfFromHTML(mthInfoPrintHTML(p),{title:p.name+' - Project Overview',filter:'All project details'});}
 </script>
 
+<script>
+// MTH live stock summary: collapsed by default on laptop and phone.
+function mthToggleSummaryPreview() {
+  const report = document.getElementById('printableVacantReport');
+  const button = document.getElementById('mthSummaryToggle');
+  if (!report || !button) return;
+  const collapsed = report.classList.toggle('mth-summary-collapsed');
+  button.textContent = collapsed ? '▼ Expand' : '▲ Collapse';
+  button.setAttribute('aria-expanded', String(!collapsed));
+}
+</script>
 </body>
 </html>
