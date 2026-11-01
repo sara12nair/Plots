@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 2611_01_1619 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 2611_01_1724 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -1106,16 +1106,36 @@
 }
 #vacantFaceFilter option:disabled { color: #94a3b8; }
 </style>
+<style>
+/* Compact finance context shared by the live vacant list and both PDF routes. */
+#printableVacantReport .mth-vacant-finance-strip { margin:5px 0 7px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:4px; background:#f8fafc; color:#173a7a; font-size:11px; line-height:1.45; font-weight:600; overflow-wrap:anywhere; break-inside:avoid; }
+#printableVacantReport .mth-range-banner .range-title { font-size:21px; }
+#printableVacantReport .mth-summary-kpis .kpi-card .val { font-size:19px; }
+@media print {
+ #printableVacantReport .report-title-box h1 { font-size:12pt !important; margin:0 0 2px !important; }
+ #printableVacantReport .mth-range-banner { padding:4px 7px !important; margin:4px 0 5px !important; }
+ #printableVacantReport .mth-range-banner .range-title { font-size:14pt !important; }
+ #printableVacantReport .mth-range-banner .range-count { font-size:8pt !important; }
+ #printableVacantReport .mth-summary-kpis { gap:5px !important; margin-bottom:5px !important; }
+ #printableVacantReport .mth-summary-kpis .kpi-card { padding:5px 4px !important; }
+ #printableVacantReport .mth-summary-kpis .kpi-card .lbl { font-size:7pt !important; }
+ #printableVacantReport .mth-summary-kpis .kpi-card .val { font-size:11pt !important; }
+ #printableVacantReport .mth-summary-kpis .mth-kpi-area { font-size:8pt !important; }
+ #printableVacantReport .mth-vacant-finance-strip { font-size:8pt !important; margin:4px 0 6px !important; padding:5px 7px !important; }
+}
+@media screen { #printableVacantReport.mth-summary-collapsed .mth-range-banner .range-title { font-size:15px; } }
+@media screen and (max-width:767px) { #printableVacantReport .mth-vacant-finance-strip { font-size:10px; } #printableVacantReport .mth-summary-kpis .kpi-card .val { font-size:17px; } }
+</style>
 </head>
 <body>
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 2611_01_1619 IST">
+    <div class="app-brand-strip no-print" title="Release 2611_01_1724 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 2611_01_1619 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 2611_01_1619 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 2611_01_1724 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 2611_01_1724 IST</span>
         </div>
     </div>
 
@@ -1266,6 +1286,8 @@
                         <div class="kpi-card"><div class="lbl">Vacant Plots</div><div class="val" id="vacantKpiPlotCount">0</div><div class="mth-kpi-area" id="vacantKpiTotalArea">0 SFT</div></div>
                         <div class="kpi-card" style="grid-column:1/-1"><div class="lbl">Total Vacant Inventory Value</div><div class="val" id="vacantKpiTotalValue">₹0</div></div>
                     </div>
+
+                    <div id="mthVacantFinanceStrip" class="mth-vacant-finance-strip" aria-live="polite"></div>
 
                     <div id="vacantAreaBreakdown" class="no-print" style="margin:6px 0;border:1px solid #cbd5e1;border-radius:5px;overflow:hidden">
                         <button type="button" id="vacantAreaBreakdownToggle" onclick="mthToggleAreaBreakdown()" aria-expanded="false" style="display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#f1f5f9;color:#1e3a8a;border:0;cursor:pointer;font-weight:700;font-size:.76rem;text-align:left">
@@ -3843,9 +3865,22 @@ function mthUpdateFaceAvailability(vacantPlots) {
     if (select.selectedOptions[0]?.disabled) select.value = '';
 }
 
+function mthVacantFinanceText(p,bank){
+ const rate=value=>value!==''&&value!=null&&Number.isFinite(Number(value))&&Number(value)>0?formatCurrency(Number(value))+'/sq. ft.':'Not entered';
+ const bankName=String(bank?.financier||'').trim();
+ const hasBank=bankName&&bankName!=='N/A';
+ const pct=Number(bank?.loanPct);
+ const tax=Number(p.taxPct),doc=Number(p.docCharges);
+ const gv=Number(p.guideValue);
+ const registration=p.taxPct!==''&&p.taxPct!=null&&Number.isFinite(tax)&&tax>=0&&p.guideValue!==''&&p.guideValue!=null&&Number.isFinite(gv)&&gv>0?tax+'% of GV ('+new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:0,maximumFractionDigits:2}).format(gv*tax/100)+'/sq. ft.)':'Not entered';
+ const documentation=p.docCharges!==''&&p.docCharges!=null&&Number.isFinite(doc)&&doc>=0?formatCurrency(doc):'Not entered';
+ return 'GV: '+rate(p.guideValue)+'  ·  Registration: '+registration+'  ·  Documentation charges: '+documentation+'  ·  Bank: '+(hasBank?bankName:'Not selected')+'  ·  Bank value: '+(hasBank?rate(bank.bankerSft):'Not entered')+'  ·  Loan: '+(hasBank&&bank.loanPct!==''&&bank.loanPct!=null&&Number.isFinite(pct)&&pct>=0&&pct<=100?pct+'%':'Not entered');
+}
+
 function updateVacantReport() {
     mthUpdateAreaArrows();
     const p = getActiveProject();
+    document.getElementById('mthVacantFinanceStrip').textContent = mthVacantFinanceText(p, getActiveBank());
     const areaFilter = mthGetAreaFilter();
     const allVacantPlots = (p.plots || []).filter(plot => String(plot.status || 'Vacant').trim().toLowerCase() === 'vacant');
     mthUpdateFaceAvailability(allVacantPlots);
@@ -5573,11 +5608,11 @@ function mthInfoValues(p){
  const defaults=mthInfoIsElite(p)?{location:'Vadamadurai, Periyapalayam',areaAcres:4,totalPlots:140,approvalType:'DTCP',approvalNumber:'xxxxx',bookingAdvance:100000,registrationOffice:'Arani, near Periyapalayam',titleDetails:'Clear title for 50 years',amenities:'Compound wall with entrance gate\nBlacktop roads\nSolar street lights\nSweet groundwater available at 40 feet'}:{};
  return {...defaults,...(p.basicDetails||{}),name:p.name||''};
 }
+function mthInfoAvailablePlots(p){return (p.plots||[]).filter(plot=>String(plot.status||'Vacant').trim().toLowerCase()==='vacant');}
 function mthInfoAutoRange(p){
- const areas=(p.plots||[]).map(x=>Number(x.area)).filter(x=>Number.isFinite(x)&&x>0);
- if(areas.length)return {min:Math.min(...areas),max:Math.max(...areas),source:'Calculated from this project’s inventory (all statuses).'};
- if(mthInfoIsElite(p))return {min:390,max:1532,source:'Based on the supplied full plot-area schedule; inventory is empty.'};
- return {min:null,max:null,source:'Add plot areas to this project’s inventory to calculate the range.'};
+ const areas=mthInfoAvailablePlots(p).map(x=>Number(x.area)).filter(x=>Number.isFinite(x)&&x>0);
+ if(areas.length)return {min:Math.min(...areas),max:Math.max(...areas),source:'Calculated from available (Vacant) plots only. Booked and Sold plots are excluded.'};
+ return {min:null,max:null,source:mthInfoAvailablePlots(p).length?'Enter valid areas for Vacant plots to calculate the range.':'No vacant plots available.'};
 }
 function mthInfoManualRange(p,key){
  const d=p.basicDetails||{},lo=d[key+'Min'],hi=d[key+'Max'];
@@ -5590,11 +5625,11 @@ function mthInfoRange(p){
  return r?{...r,source:'Plot size range entered manually. Reset to Auto in Edit to use inventory values.'}:mthInfoAutoRange(p);
 }
 function mthInfoDownPaymentRange(p){return mthInfoManualRange(p,'downPayment')||mthInfoAutoDownPaymentRange(p);}
-function mthInfoRangeText(p){const r=mthInfoRange(p);return r.min===null?'Not available':`${r.min.toLocaleString('en-IN')}–${r.max.toLocaleString('en-IN')} sq. ft.`;}
+function mthInfoRangeText(p){const r=mthInfoRange(p);return r.min===null?(mthInfoAvailablePlots(p).length?'Not available':'No vacant plots available'):`${r.min.toLocaleString('en-IN')}–${r.max.toLocaleString('en-IN')} sq. ft.`;}
 // Use each plot's normal selling cost, including its offer and corner premium.
 // Registration/document charges are paid in full in addition to the 30% plot share.
 function mthInfoAutoDownPaymentRange(p){
- const amounts=(p.plots||[]).filter(plot=>Number.isFinite(Number(plot.area))&&Number(plot.area)>0).map(plot=>{
+ const amounts=mthInfoAvailablePlots(p).filter(plot=>Number.isFinite(Number(plot.area))&&Number(plot.area)>0).map(plot=>{
   const f=calculatePlotFinancials(p,plot);
   const plotCost=f.baseCost+f.cornerCost;
   return plotCost>0&&Number.isFinite(plotCost)&&Number.isFinite(f.taxAndDoc)&&f.taxAndDoc>=0?Math.round(plotCost*0.30+f.taxAndDoc):null;
@@ -5603,7 +5638,7 @@ function mthInfoAutoDownPaymentRange(p){
 }
 function mthInfoDownPaymentText(p){
  const r=mthInfoDownPaymentRange(p);
- return r?`${formatCurrency(r.min)} – ${formatCurrency(r.max)} ${mthInfoManualRange(p,'downPayment')?'(Manual)':'(30% of plot cost + full registration/document charges)'}`:'Not available — add plot areas and selling rates';
+ return r?`${formatCurrency(r.min)} – ${formatCurrency(r.max)} ${mthInfoManualRange(p,'downPayment')?'(Manual)':'(30% of plot cost + full registration/document charges)'}`:(mthInfoAvailablePlots(p).length?'Not available — add valid vacant plot areas and selling rates':'No vacant plots available');
 }
 function mthInfoSnapshot(p){return JSON.stringify([p.name,p.basicDetails||{}]);}
 function mthInfoCurrent(){const p=appData.projects[mthInfoSession?.index];return p&&appData.activeProjectIndex===mthInfoSession.index&&p.name===mthInfoSession.originalName?p:null;}
@@ -5628,7 +5663,7 @@ function mthInfoRender(p){
 function mthInfoRangeFields(p){
  const d=p.basicDetails||{},esc=mthInfoEscape;
  return [['plotSize','Plot size (sq. ft.)',mthInfoAutoRange(p)],['downPayment','Down payment (₹)',mthInfoAutoDownPaymentRange(p)]].map(([key,label,auto])=>
- `<fieldset class="mth-info-wide" style="border:1px solid #cbd5e1;border-radius:5px;padding:12px"><legend>${label}</legend><p style="margin:0 0 10px;font-size:13px">Leave both fields blank for automatic values. Auto: ${auto&&auto.min!==null?esc(key==='plotSize'?auto.min.toLocaleString('en-IN')+' – '+auto.max.toLocaleString('en-IN')+' sq. ft.':formatCurrency(auto.min)+' – '+formatCurrency(auto.max)):'Not available'}</p><div class="mth-info-grid">${['Min','Max'].map(part=>`<label for="mthInfo_${key+part}">${part==='Min'?'Minimum':'Maximum'}<input id="mthInfo_${key+part}" type="number" min="${key==='plotSize'?'0.01':'0'}" step="any" placeholder="${auto&&auto[part.toLowerCase()]!=null?esc(auto[part.toLowerCase()]):'Auto'}" value="${esc(d[key+part]??'')}"></label>`).join('')}</div><button type="button" class="btn btn-outline" style="margin-top:10px" onclick="mthInfoResetRange('${key}')">Reset to Auto</button></fieldset>`).join('');
+ `<fieldset class="mth-info-wide" style="border:1px solid #cbd5e1;border-radius:5px;padding:12px"><legend>${label}</legend><p style="margin:0 0 10px;font-size:13px">Leave both fields blank for automatic values from Vacant plots only. Auto: ${auto&&auto.min!==null?esc(key==='plotSize'?auto.min.toLocaleString('en-IN')+' – '+auto.max.toLocaleString('en-IN')+' sq. ft.':formatCurrency(auto.min)+' – '+formatCurrency(auto.max)):'Not available'}</p><div class="mth-info-grid">${['Min','Max'].map(part=>`<label for="mthInfo_${key+part}">${part==='Min'?'Minimum':'Maximum'}<input id="mthInfo_${key+part}" type="number" min="${key==='plotSize'?'0.01':'0'}" step="any" placeholder="${auto&&auto[part.toLowerCase()]!=null?esc(auto[part.toLowerCase()]):'Auto'}" value="${esc(d[key+part]??'')}"></label>`).join('')}</div><button type="button" class="btn btn-outline" style="margin-top:10px" onclick="mthInfoResetRange('${key}')">Reset to Auto</button></fieldset>`).join('');
 }
 function mthInfoResetRange(key){
  if(!['plotSize','downPayment'].includes(key))return;
