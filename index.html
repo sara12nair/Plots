@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 2610_30_1220 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 2611_01_1619 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -1111,11 +1111,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 2610_30_1220 IST">
+    <div class="app-brand-strip no-print" title="Release 2611_01_1619 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 2610_30_1220 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 2610_30_1220 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 2611_01_1619 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 2611_01_1619 IST</span>
         </div>
     </div>
 
@@ -5573,13 +5573,38 @@ function mthInfoValues(p){
  const defaults=mthInfoIsElite(p)?{location:'Vadamadurai, Periyapalayam',areaAcres:4,totalPlots:140,approvalType:'DTCP',approvalNumber:'xxxxx',bookingAdvance:100000,registrationOffice:'Arani, near Periyapalayam',titleDetails:'Clear title for 50 years',amenities:'Compound wall with entrance gate\nBlacktop roads\nSolar street lights\nSweet groundwater available at 40 feet'}:{};
  return {...defaults,...(p.basicDetails||{}),name:p.name||''};
 }
-function mthInfoRange(p){
+function mthInfoAutoRange(p){
  const areas=(p.plots||[]).map(x=>Number(x.area)).filter(x=>Number.isFinite(x)&&x>0);
  if(areas.length)return {min:Math.min(...areas),max:Math.max(...areas),source:'Calculated from this project’s inventory (all statuses).'};
  if(mthInfoIsElite(p))return {min:390,max:1532,source:'Based on the supplied full plot-area schedule; inventory is empty.'};
  return {min:null,max:null,source:'Add plot areas to this project’s inventory to calculate the range.'};
 }
+function mthInfoManualRange(p,key){
+ const d=p.basicDetails||{},lo=d[key+'Min'],hi=d[key+'Max'];
+ if(lo==null||hi==null||lo===''||hi==='')return null;
+ const min=Number(lo),max=Number(hi);
+ return Number.isFinite(min)&&Number.isFinite(max)&&min>=0&&max>=min&&(key!=='plotSize'||min>0)?{min,max}:null;
+}
+function mthInfoRange(p){
+ const r=mthInfoManualRange(p,'plotSize');
+ return r?{...r,source:'Plot size range entered manually. Reset to Auto in Edit to use inventory values.'}:mthInfoAutoRange(p);
+}
+function mthInfoDownPaymentRange(p){return mthInfoManualRange(p,'downPayment')||mthInfoAutoDownPaymentRange(p);}
 function mthInfoRangeText(p){const r=mthInfoRange(p);return r.min===null?'Not available':`${r.min.toLocaleString('en-IN')}–${r.max.toLocaleString('en-IN')} sq. ft.`;}
+// Use each plot's normal selling cost, including its offer and corner premium.
+// Registration/document charges are paid in full in addition to the 30% plot share.
+function mthInfoAutoDownPaymentRange(p){
+ const amounts=(p.plots||[]).filter(plot=>Number.isFinite(Number(plot.area))&&Number(plot.area)>0).map(plot=>{
+  const f=calculatePlotFinancials(p,plot);
+  const plotCost=f.baseCost+f.cornerCost;
+  return plotCost>0&&Number.isFinite(plotCost)&&Number.isFinite(f.taxAndDoc)&&f.taxAndDoc>=0?Math.round(plotCost*0.30+f.taxAndDoc):null;
+ }).filter(x=>x!==null);
+ return amounts.length?{min:Math.min(...amounts),max:Math.max(...amounts)}:null;
+}
+function mthInfoDownPaymentText(p){
+ const r=mthInfoDownPaymentRange(p);
+ return r?`${formatCurrency(r.min)} – ${formatCurrency(r.max)} ${mthInfoManualRange(p,'downPayment')?'(Manual)':'(30% of plot cost + full registration/document charges)'}`:'Not available — add plot areas and selling rates';
+}
 function mthInfoSnapshot(p){return JSON.stringify([p.name,p.basicDetails||{}]);}
 function mthInfoCurrent(){const p=appData.projects[mthInfoSession?.index];return p&&appData.activeProjectIndex===mthInfoSession.index&&p.name===mthInfoSession.originalName?p:null;}
 function mthInfoOpen(){
@@ -5589,7 +5614,7 @@ function mthInfoOpen(){
 }
 function mthInfoBody(p){
  const d=mthInfoValues(p),esc=mthInfoEscape;
- const rows=[['Location',d.location],['Village',d.village],['Taluk / Tehsil',d.taluk],['District',d.district],['Total Area',d.areaAcres!==''&&d.areaAcres!=null?`${d.areaAcres} acres`:''],['Total Plots',d.totalPlots??((p.plots||[]).length||'')],['Plot Size Range',mthInfoRangeText(p)],['Approval',[d.approvalType,d.approvalNumber].filter(Boolean).join(' — ')],['RERA Registration',d.reraNumber],['Booking Advance',d.bookingAdvance!==''&&d.bookingAdvance!=null?formatCurrency(d.bookingAdvance):''],['Sub-Registrar Office',d.registrationOffice],['Survey Number(s)',d.surveyNumbers],['Title',d.titleDetails]];
+ const rows=[['Location',d.location],['Village',d.village],['Taluk / Tehsil',d.taluk],['District',d.district],['Total Area',d.areaAcres!==''&&d.areaAcres!=null?`${d.areaAcres} acres`:''],['Total Plots',d.totalPlots??((p.plots||[]).length||'')],['Plot Size (Minimum – Maximum)',mthInfoRangeText(p)],['Down Payment (Minimum – Maximum)',mthInfoDownPaymentText(p)],['Approval',[d.approvalType,d.approvalNumber].filter(Boolean).join(' — ')],['RERA Registration',d.reraNumber],['Booking Advance',d.bookingAdvance!==''&&d.bookingAdvance!=null?formatCurrency(d.bookingAdvance):''],['Sub-Registrar Office',d.registrationOffice],['Survey Number(s)',d.surveyNumbers],['Title',d.titleDetails]];
  const list=String(d.amenities||'').split(/\n/).map(x=>x.trim()).filter(Boolean);
  return '<table class="mth-info-table"><tbody>'+rows.map(([k,v])=>`<tr><th scope="row">${esc(k)}</th><td>${esc(v==null||v===''?'Not entered':v)}</td></tr>`).join('')+'</tbody></table><h3>Project Amenities</h3>'+(list.length?'<ul>'+list.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':'<p>Not entered</p>');
 }
@@ -5599,6 +5624,16 @@ function mthInfoRender(p){
  document.getElementById('mthInfoStatus').textContent=mthInfoRange(p).source;
  document.getElementById('mthInfoForm').hidden=true;document.getElementById('mthInfoView').hidden=false;document.getElementById('mthInfoViewActions').hidden=false;
  mthInfoSession.editing=false;
+}
+function mthInfoRangeFields(p){
+ const d=p.basicDetails||{},esc=mthInfoEscape;
+ return [['plotSize','Plot size (sq. ft.)',mthInfoAutoRange(p)],['downPayment','Down payment (₹)',mthInfoAutoDownPaymentRange(p)]].map(([key,label,auto])=>
+ `<fieldset class="mth-info-wide" style="border:1px solid #cbd5e1;border-radius:5px;padding:12px"><legend>${label}</legend><p style="margin:0 0 10px;font-size:13px">Leave both fields blank for automatic values. Auto: ${auto&&auto.min!==null?esc(key==='plotSize'?auto.min.toLocaleString('en-IN')+' – '+auto.max.toLocaleString('en-IN')+' sq. ft.':formatCurrency(auto.min)+' – '+formatCurrency(auto.max)):'Not available'}</p><div class="mth-info-grid">${['Min','Max'].map(part=>`<label for="mthInfo_${key+part}">${part==='Min'?'Minimum':'Maximum'}<input id="mthInfo_${key+part}" type="number" min="${key==='plotSize'?'0.01':'0'}" step="any" placeholder="${auto&&auto[part.toLowerCase()]!=null?esc(auto[part.toLowerCase()]):'Auto'}" value="${esc(d[key+part]??'')}"></label>`).join('')}</div><button type="button" class="btn btn-outline" style="margin-top:10px" onclick="mthInfoResetRange('${key}')">Reset to Auto</button></fieldset>`).join('');
+}
+function mthInfoResetRange(key){
+ if(!['plotSize','downPayment'].includes(key))return;
+ ['Min','Max'].forEach(part=>{document.getElementById('mthInfo_'+key+part).value='';});
+ document.getElementById('mthInfoStatus').textContent='Automatic '+(key==='plotSize'?'plot size':'down payment')+' selected. Press Save Project Info to apply.';
 }
 function mthInfoEdit(){
  const p=mthInfoCurrent();if(!p){alert('The selected project changed. Close and reopen Project Info.');return;}
@@ -5610,7 +5645,7 @@ function mthInfoEdit(){
  else if(type==='select')control=`<select id="${id}">${['','DTCP','CMDA','Other'].map(x=>`<option value="${x}" ${d[key]===x?'selected':''}>${x||'Select approval'}</option>`).join('')}</select>`;
  else control=`<input id="${id}" type="${type}" ${key==='name'?'required maxlength="250"':''} ${type==='number'?`min="0" step="${key==='totalPlots'?'1':'any'}"`:''} value="${esc(d[key]??'')}">`;
  return `<label class="${type==='textarea'?'mth-info-wide':''}" for="${id}">${label}${control}</label>`;
- }).join('')+`<div class="mth-info-wide"><strong>Plot Size Range:</strong> ${esc(mthInfoRangeText(p))}<p>${esc(mthInfoRange(p).source)}</p></div>`;
+ }).join('')+mthInfoRangeFields(p);
  document.getElementById('mthInfoView').hidden=true;document.getElementById('mthInfoForm').hidden=false;document.getElementById('mthInfoViewActions').hidden=true;
  document.getElementById('mthInfoStatus').textContent='Changes are saved only when you press Save Project Info.';
  mthInfoSession.editing=true;document.getElementById('mthInfo_name').focus();
@@ -5620,6 +5655,12 @@ function mthInfoSave(){
  if(!p||mthInfoSnapshot(p)!==mthInfoSession.snapshot){status.textContent='This project changed while you were editing. Copy your changes, then Cancel and reopen Edit to use the latest details.';return false;}
  const form=document.getElementById('mthInfoForm');if(!form.reportValidity())return false;
  const d={};for(const [key,,type] of MTH_INFO_FIELDS){const v=document.getElementById('mthInfo_'+key).value.trim();d[key]=type==='number'&&v!==''?Number(v):v;}
+ for(const [key,label] of [['plotSize','Plot size'],['downPayment','Down payment']]){
+  const lo=document.getElementById('mthInfo_'+key+'Min').value.trim(),hi=document.getElementById('mthInfo_'+key+'Max').value.trim();
+  if((lo==='')!==(hi==='')){status.textContent=label+': enter both minimum and maximum, or clear both for Auto.';return false;}
+  if(lo!==''&&(!Number.isFinite(Number(lo))||!Number.isFinite(Number(hi))||Number(lo)<0||Number(hi)<Number(lo)||(key==='plotSize'&&Number(lo)<=0))){status.textContent=label+': use valid numbers with minimum no greater than maximum'+(key==='plotSize'?' and size greater than zero.':'.');return false;}
+  d[key+'Min']=lo===''?'':Number(lo);d[key+'Max']=hi===''?'':Number(hi);
+ }
  if(!d.name){status.textContent='Enter a project name.';return false;}
  if(d.approvalNumber&&!d.approvalType){status.textContent='Choose an approval type.';return false;}
  p.name=d.name;delete d.name;p.basicDetails={...(p.basicDetails||{}),...d};
