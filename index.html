@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Madras Trading House | Plot Sales Monitor & Team · Release 2611_01_1724 IST</title>
+    <title>Madras Trading House | Plot Sales Monitor & Team · Release 2611_02_1009 IST</title>
 
     <!-- PWA manifest + theme color: required for Chrome to offer "Install app" -->
     <link rel="manifest" href="./manifest.json">
@@ -1131,11 +1131,11 @@
 
 <div class="container">
 
-    <div class="app-brand-strip no-print" title="Release 2611_01_1724 IST">
+    <div class="app-brand-strip no-print" title="Release 2611_02_1009 IST">
         <img src="./icon-192.png" alt="Madras Trading House logo">
         <div class="app-brand-copy">
-            <strong>Madras Trading House</strong><!-- Release 2611_01_1724 IST; preserve approved header layout -->
-            <span>Plot Sales Monitor &amp; Team · Release 2611_01_1724 IST</span>
+            <strong>Madras Trading House</strong><!-- Release 2611_02_1009 IST; preserve approved header layout -->
+            <span>Plot Sales Monitor &amp; Team · Release 2611_02_1009 IST</span>
         </div>
     </div>
 
@@ -1199,7 +1199,7 @@
                 </div>
 
                 <div class="toolbar no-print" style="margin:6px 0;align-items:end" id="vacantAreaFilterBar">
-                    <strong style="font-size:.8rem">📐 Vacant plots by area</strong>
+                    <strong style="font-size:.8rem">📐 Vacant plot view</strong>
                     <div class="form-group"><label for="vacantFaceFilter">FACE</label><select id="vacantFaceFilter" onchange="updateVacantReport()" style="min-width:120px">
                         <option value="">All directions</option>
                         <option value="NORTH">N — North</option><option value="NORTH EAST">NE — North East</option>
@@ -1207,7 +1207,7 @@
                         <option value="SOUTH">S — South</option><option value="SOUTH WEST">SW — South West</option>
                         <option value="WEST">W — West</option><option value="NORTH WEST">NW — North West</option>
                     </select></div>
-                    <div class="form-group"><label for="mthGroupingSelect">Group by</label><select id="mthGroupingSelect" onchange="updateVacantReport()"><option value="area" selected>Area</option><option value="facing">FACE</option></select></div>
+                    <div class="form-group"><label for="mthGroupingSelect">Group by</label><select id="mthGroupingSelect" onchange="updateVacantReport()"><option value="area" selected>Area</option><option value="facing">FACE</option><option value="plot">Plot number</option></select></div>
                     <button type="button" id="mthAreaPrev" class="btn btn-outline" onclick="mthStepArea(-1)" title="Previous available plot size" aria-label="Previous available plot size">◀</button>
                     <div class="form-group"><label for="vacantAreaFrom">From (SFT)</label><input id="vacantAreaFrom" type="number" min="0" step="1" placeholder="e.g. 600" style="width:100px" oninput="mthAreaFromChanged()"></div>
                     <div class="form-group"><label for="vacantAreaTo">To (SFT)</label><input id="vacantAreaTo" type="number" min="0" step="1" placeholder="e.g. 700" style="width:100px" oninput="mthAreaToChanged()"></div>
@@ -1216,6 +1216,11 @@
                     <button type="button" class="btn btn-outline" onclick="mthClearAreaFilter()">Clear</button>
                     <span id="vacantAreaMatches" style="font-weight:600;font-size:.75rem"></span>
                 </div>
+                <div class="toolbar no-print" style="margin:6px 0;align-items:end">
+                    <div class="form-group" style="flex:1;min-width:170px"><label for="mthPlotSearch">Find plot · current project · all statuses</label><input id="mthPlotSearch" type="search" placeholder="Type plot number, e.g. 6 or 129/130" oninput="mthRenderPlotLookup()" onkeydown="if(event.key==='Escape'){this.value='';mthRenderPlotLookup();}"></div>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('mthPlotSearch').value='';mthRenderPlotLookup();document.getElementById('mthPlotSearch').focus()">Clear search</button>
+                </div>
+                <div id="mthPlotLookupResults" class="no-print" aria-live="polite"></div>
                 <!-- Collapsible Wrapper for Table & Toolbar -->
                 <div id="inventoryCollapsibleContent">
                     <div class="toolbar">
@@ -3833,10 +3838,64 @@ function mthOrderVacantPlots(plots) {
     const order = ['NORTH','EAST','SOUTH','WEST','NORTH EAST','NORTH WEST','SOUTH EAST','SOUTH WEST'];
     const rank = plot => { const i = order.indexOf(mthFacingKey(plot)); return i < 0 ? order.length : i; };
     return [...plots].sort((a,b) => {
+        if (document.getElementById('mthGroupingSelect')?.value === 'plot') return mthComparePlotNumbers(a.plotNo, b.plotNo);
         const area = Number(a.area || 0) - Number(b.area || 0);
         const facing = rank(a)-rank(b) || mthFacingKey(a).localeCompare(mthFacingKey(b));
         return (mthGroupByFacing() ? facing || area : area || facing) ||
             String(a.plotNo).localeCompare(String(b.plotNo), undefined, {numeric:true});
+    });
+}
+
+
+function mthPlotMatchesQuery(plotNo, query) {
+    const normalize = value => String(value ?? '').trim().toUpperCase().replace(/\s+/g, '');
+    const number = normalize(plotNo), search = normalize(query);
+    return !!search && (number === search || number.split(/[\/,&+]+/).includes(search));
+}
+function mthRenderPlotLookup() {
+    const output = document.getElementById('mthPlotLookupResults');
+    const query = document.getElementById('mthPlotSearch')?.value.trim();
+    if (!output) return;
+    output.replaceChildren();
+    if (!query) return;
+    const project = getActiveProject();
+    const matches = mthSortedPlotEntries(project.plots).filter(({plot}) => mthPlotMatchesQuery(plot.plotNo, query));
+    const heading = document.createElement('p');
+    heading.textContent = `${project.name} · ${matches.length} matching plot${matches.length === 1 ? '' : 's'} · all statuses, independent of area / facing filters`;
+    output.appendChild(heading);
+    if (!matches.length) {
+        const empty = document.createElement('p');
+        empty.textContent = 'Plot not found in this project. Enter the full plot number or choose another project.';
+        output.appendChild(empty); return;
+    }
+    matches.forEach(({plot, idx}) => {
+        const card = document.createElement('div');
+        card.style.cssText = 'border:1px solid #b8c9df;border-radius:6px;padding:10px;margin:6px 0;background:#f4f8ff';
+        const title = document.createElement('strong');
+        const status = String(plot.status || 'Vacant').trim();
+        const unavailable = ['booked', 'sold'].includes(status.toLowerCase());
+        const number = document.createElement('span');
+        number.textContent = `Plot ${plot.plotNo}`;
+        if (unavailable) number.style.cssText = 'color:#64748b;background:#e2e8f0;padding:2px 5px;border-radius:3px';
+        title.append(number, document.createTextNode(unavailable ? ` · Not available — ${status}` : ` · ${status}`));
+        const info = document.createElement('p');
+        const fin = calculatePlotFinancials(project, plot);
+        info.textContent = `Facing: ${plot.facing || 'Not recorded'} · Area: ${Number(plot.area || 0).toLocaleString('en-IN')} SFT · Corner: ${plot.corner ? 'Yes' : 'No'} · Estimated total: ${formatCurrency(fin.subtotal)}`;
+        const notes = document.createElement('p');
+        notes.textContent = 'Notes: ' + (plot.notes || '—');
+        const team = document.createElement('p');
+        const sale = plot.mthSaleDetails || {};
+        const members = appData.mthSaleTeamDirectory || [];
+        const name = id => members.find(member => member.id === id)?.name || 'Not recorded';
+        team.textContent = `VP: ${name(sale.vpId)} · DVP: ${['vp-direct','bdm-vp'].includes(sale.reportingMode) ? 'Direct to VP (No DVP)' : name(sale.dvpId)}`;
+        const details = document.createElement('button');
+        details.type = 'button'; details.className = 'btn btn-outline';
+        details.textContent = 'Sale / booking details';
+        details.onclick = () => mthOpenSaleDetails(idx);
+        const history = document.createElement('div');
+        history.innerHTML = renderPlotStatusHistory(plot);
+        card.append(title, info, notes, team, details, history);
+        output.appendChild(card);
     });
 }
 
@@ -3878,6 +3937,7 @@ function mthVacantFinanceText(p,bank){
 }
 
 function updateVacantReport() {
+    mthRenderPlotLookup();
     mthUpdateAreaArrows();
     const p = getActiveProject();
     document.getElementById('mthVacantFinanceStrip').textContent = mthVacantFinanceText(p, getActiveBank());
@@ -3964,7 +4024,7 @@ function updateVacantReport() {
         let previousGroup = null, previousFacing = null;
         orderedPlots.forEach((plot, index) => {
             const group = primaryGroup(plot);
-            if (group !== previousGroup) {
+            if (document.getElementById('mthGroupingSelect')?.value !== 'plot' && group !== previousGroup) {
                 const groupPlots = orderedPlots.filter(item => primaryGroup(item) === group);
                 const groupArea = groupPlots.reduce((sum,item) => sum + Number(item.area || 0), 0);
                 const heading = document.createElement('tr');
